@@ -91,7 +91,8 @@ class Shop:
             "s9" : [RIGHT, UP, DOWN],
             "s10" : [LEFT],
             "s11" : [UP, DOWN],
-            "s12" : [RIGHT, UP, DOWN],
+            # "s12" : [RIGHT, UP, DOWN],
+            "s12": ["TERMINAL"],
             "s13" : [LEFT],
             "s14" : [RIGHT, UP, DOWN],
             "s15" : [LEFT, DOWN],
@@ -315,9 +316,8 @@ class Shop:
         for i in range(max_iter):
             max_diff = 0  # Initialize max difference
             V_new = {}
-            for state in states:
-                V_new[state] = 0  # Initialize values
             for s in states:
+                V_new[s] = 0
                 max_val = 0
                 for a in actions:
                     # Compute state value
@@ -330,7 +330,8 @@ class Shop:
 
                     # Update best policy
                     if V[s] < val:
-                        pi[s] = a # Store action with highest value
+                        if not self.possible_transitions[s] == ["TERMINAL"]: # if you can't transition then no pi update
+                            pi[s] = a # Store action with highest value
 
                 V_new.update({s : max_val})  # Update value with highest value
 
