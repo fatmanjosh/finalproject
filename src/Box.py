@@ -14,9 +14,8 @@ class Box:
             while(current != len(ingredients) and ingredient == ingredients[current]):
                 result[ingredient].append(ingredients[current])
                 current += 1
-
         return result
-
+	
     def check_for_ingredient(self, ingredient):
         return ingredient in self._ingredients[ingredient]
 
