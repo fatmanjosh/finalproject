@@ -70,8 +70,9 @@ class Shop:
         DOWN = "DOWN"
         LEFT = "LEFT"
         RIGHT = "RIGHT"
+        TERMINAL = "TERMINAL"
 
-        self.actions = ("UP", "DOWN", "LEFT", "RIGHT")
+        self.actions = ("UP", "DOWN", "LEFT", "RIGHT", "TERMINAL")
 
 
 
@@ -79,7 +80,7 @@ class Shop:
         all possible actions from each state
         """
         self.possible_transitions = {
-            "s0" : ["TERMINAL"],## changes here to add terminal states
+            "s0" : [TERMINAL],## changes here to add terminal states
             # "s0": [RIGHT],
             "s1" : [LEFT, RIGHT, UP],
             "s2" : [LEFT, RIGHT],
@@ -87,14 +88,14 @@ class Shop:
             "s4" : [LEFT, RIGHT],
             "s5" : [LEFT, RIGHT, UP],
             # "s6" : [LEFT, RIGHT],
-            "s6": ["TERMINAL"],## changes here to add terminal states
+            "s6": [TERMINAL],## changes here to add terminal states
             "s7" : [LEFT, RIGHT, UP],
             "s8" : [LEFT, RIGHT, UP],
             "s9" : [RIGHT, UP, DOWN],
             "s10" : [LEFT],
             "s11" : [UP, DOWN],
             # "s12" : [RIGHT, UP, DOWN],
-            "s12": ["TERMINAL"],
+            "s12": [TERMINAL],
             "s13" : [LEFT],
             "s14" : [RIGHT, UP, DOWN],
             "s15" : [LEFT, DOWN],
@@ -171,7 +172,8 @@ class Shop:
             RIGHT : self.transition_states(RIGHT, 1, 0),
             LEFT : self.transition_states(LEFT, -1, 0),
             UP : self.transition_states(UP, 0, 1),
-            DOWN : self.transition_states(DOWN, 0, -1)
+            DOWN : self.transition_states(DOWN, 0, -1),
+            TERMINAL: self.transition_states(TERMINAL, 0, 0)
         }
 
 
@@ -270,6 +272,8 @@ class Shop:
         for state in self.states:
             transition_dict[state] = {}
             for next_state in self.states:
+                #if self.possible_transitions[state] == ["TERMINAL"]:
+                #    transition_dict[state][next_state] = 1
                 if next_state == state: # if the next state and the start state are the same
                     if not direction in self.possible_transitions[state]:# if you cant move in that direction from state
                         transition_dict[state][next_state] = 1   # stay where you are
@@ -321,7 +325,7 @@ class Shop:
             for j in range(max_value_iter):
                 max_diff = 0  # Initialize max difference
                 for s in states:
-
+                    #print(s + " and " + str(self.possible_transitions[s]))
                     # Compute state value
                     val = rewards[s]  # Get direct reward
                     for s_next in states:
@@ -340,7 +344,9 @@ class Shop:
             # Policy iteration
             # With updated state values, improve policy if needed
             for s in states:
-
+                #print(s)
+                #if self.possible_transitions[s] == ["TERMINAL"]:
+                #            pi[s] = "FINISHED"
                 val_max = V[s]
                 for a in actions:
                     val = rewards[s]  # Get direct reward
@@ -350,10 +356,12 @@ class Shop:
                         )  # Add discounted downstream values
 
                     # Update policy if (i) action improves value and (ii) action different from current policy
+                    #if self.possible_transitions[s] == ["TERMINAL"]:
+                    #        pi[s] = "TERMINAL"
                     if val > val_max and pi[s] != a:
-                        pi[s] = a
-                        val_max = val
-                        optimal_policy_found = False
+                            pi[s] = a
+                            val_max = val
+                            optimal_policy_found = False
 
             # If policy did not change, algorithm terminates
             if optimal_policy_found:
