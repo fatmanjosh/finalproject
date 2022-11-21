@@ -1,21 +1,44 @@
+import rospy
+from geometry_msgs.msg import Twist
 class Robot:
     def __init__(self, goal_ingredients, replacements):
+        self._mover = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        rospy.init_node('mover', anonymous=True)
         self._goal_ingredients = goal_ingredients
         self._inventory = []
         self._out_of_stock = ["milk", "almond milk"]
         self._replacements = self.update_food_dictionary(replacements)
-        # milk : ([oat milk, almond milk])
-
+        self._facing = "RIGHT"
 
         # oat milk : almond milk
 
     def update_food_dictionary(self, replacements):
+        """
+        :param replacements in the form [a, b, c]:
+        :return: replacements in the form [a:b, b:c]
+        """
         result = {}
+        print(replacements)
         for i in range(len(replacements)):
             if i != len(replacements) - 1:
                 result.update({replacements[i]: replacements[i + 1]})
-
+        print(result)
         return result
+
+    def move(self, direction):
+        print("yo")
+        movement = Twist()
+        pub = rospy.Publisher('cmd_vel', Twist, queue_size=100)
+        # rate = rospy.Rate(10) # 10hz
+        while not rospy.is_shutdown():
+            base_data = Twist()
+            base_data.linear.x = 3.5
+            pub.publish(base_data)
+        self._mover.publish(movement)
+        # rate.sleep()
+
+
+
 
 
     def check_ingredients(self):
@@ -72,4 +95,13 @@ class Robot:
     def give_ingredients(self, customer):
         customer.receive_ingredients(self._inventory)
         self._inventory = []
+
+
+if __name__ == '__main__':
+    try:
+        robot = Robot([],[])
+        robot.move("RIGHT")
+        # rospy.spin()
+    except rospy.ROSInterruptException:
+        pass
 

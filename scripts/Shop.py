@@ -51,6 +51,8 @@ class Shop:
                          [0, 0, 0, 0, 0, 0, 0, 0, 0],
                          [0, 100, 0, 100, 0, 100, 100, 0, 0]]
 
+        self.boxes = {"Dairy" : "s0",}
+
         self.states =\
             {'s0': (0, 0), 's1': (1, 0), 's2': (2, 0), 's3': (3, 0), 's4': (4, 0), 's5': (5, 0), 's6': (6, 0), 's7': (7, 0),
          's8': (8, 0), 's9': (1, 1), 's10': (2, 1), 's11': (3, 1), 's12': (5, 1), 's13': (6, 1), 's14': (7, 1),
@@ -76,6 +78,7 @@ class Shop:
         """
         all possible actions from each state
         """
+
         self.possible_transitions = {
             "s0" : ["TERMINAL"],## changes here to add terminal states
             # "s0": [RIGHT],
@@ -163,7 +166,7 @@ class Shop:
         All possible transitions in the format:
         ACTION : {INITIAL STATE : {NEXT STATE : PROBABILITY OF TRANSITION}}
         
-        EG:= {RIGHT : {s0 : {s0 : 1, s1 : 0...}, s1 : {s0 : {s0 : 0, s1 : 0.2, ...}}}, LEFT : {...}}
+        EG:= {RIGHT : {s0 : {s0 : 1, s1 : 0...}, s1 : {s0 : 0, s1 : 0.2, ...}, ...}, LEFT : {...}}
         """
         self.transitions = {
             RIGHT : self.transition_states(RIGHT, 1, 0),
@@ -176,8 +179,13 @@ class Shop:
 
         self.rewards = self.generate_rewards()
 
-        self.value_iteration()
+        # self.value_iteration()
+        self.policy_iteration()
 
+        a = "a"
+        b = "b"
+
+        print(f"{a} and {b}")
 
 
 
@@ -233,6 +241,8 @@ class Shop:
         new_map = []
 
         new2d = []
+
+
         for row in range(3, self._map.info.height, 7):
             for col in range(3, self._map.info.width, 7):
                 new2d.append(self._map_data[col + row * 63])
@@ -346,6 +356,76 @@ class Shop:
                 break
         print(V)
 
+        print(pi)
+
+    def policy_iteration(self):
+        # Initialize Markov Decision Process model
+        actions = self.actions  # actions (0=left, 1=right)
+        states = self.states  # states (tiles)
+        rewards = self.rewards# Direct rewards per state
+        gamma = 0.9  # discount factor
+        # Transition probabilities per state-action pair
+        probs = self.transitions
+
+        # Set value iteration parameters
+        delta = 1e-20# Error tolerance
+
+        # Set policy iteration parameters
+        max_policy_iter = 10000  # Maximum number of policy iterations
+        max_value_iter = 10000  # Maximum number of value iterations
+        V = {}
+        pi = {}
+        for state in states:
+            V[state] = 0 # Initialize values
+            pi[state] = "RIGHT" # Initialize policy
+
+        for i in range(max_policy_iter):
+            # Initial assumption: policy is stable
+            optimal_policy_found = True
+
+            # Policy evaluation
+            # Compute value for each state under current policy
+            for j in range(max_value_iter):
+                max_diff = 0  # Initialize max difference
+                for s in states:
+
+                    # Compute state value
+                    val = rewards[s]  # Get direct reward
+                    for s_next in states:
+                        val += probs[pi[s]][s][s_next] * (
+                                gamma * V[s_next]
+                        )  # Add discounted downstream values
+
+                    # Update maximum difference
+                    max_diff = max(max_diff, abs(val - V[s]))
+
+                    V[s] = val  # Update value with highest value
+                # If diff smaller than threshold delta for all states, algorithm terminates
+                if max_diff < delta:
+                    break
+
+            # Policy iteration
+            # With updated state values, improve policy if needed
+            for s in states:
+                val_max = V[s]
+                for a in actions:
+                    val = rewards[s]  # Get direct reward
+                    for s_next in states:
+                        val += probs[a][s][s_next] * (
+                                gamma * V[s_next]
+                        )  # Add discounted downstream values
+
+                    # Update policy if (i) action improves value and (ii) action different from current policy
+                    if val > val_max and pi[s] != a:
+                        pi.update({s : a})
+                        val_max = val
+                        optimal_policy_found = False
+
+            # If policy did not change, algorithm terminates
+            if optimal_policy_found:
+                break
+
+        print(V)
         print(pi)
 
 
