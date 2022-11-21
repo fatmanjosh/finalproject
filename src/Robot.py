@@ -10,7 +10,7 @@ class Robot:
         self._replacements = self.update_food_dictionary(replacements)
         self._facing = "RIGHT"
 
-        # oat milk : almond milk
+        # oat milk : almond milk -- mapping oat to almond as an alternative
 
     def update_food_dictionary(self, replacements):
         """
@@ -23,6 +23,7 @@ class Robot:
             if i != len(replacements) - 1:
                 result.update({replacements[i]: replacements[i + 1]})
         print(result)
+
         return result
 
     def move(self, direction):
@@ -43,7 +44,7 @@ class Robot:
 
     def check_ingredients(self):
 
-        ## check if the inghredient is out
+        ## check if the ingredient is out
         # for each ingred in oos
         # is that in the goal state
         # if so - try replaceing that by the next replacement for that ingredient until the replacement is eiter
