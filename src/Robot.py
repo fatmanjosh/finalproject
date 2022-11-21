@@ -1,4 +1,7 @@
+#!/usr/bin/python3
 import rospy
+import time
+from math import pi
 from geometry_msgs.msg import Twist
 class Robot:
     def __init__(self, goal_ingredients, replacements):
@@ -25,21 +28,25 @@ class Robot:
         print(result)
 
         return result
-
+        
     def move(self, direction):
         print("yo")
         movement = Twist()
         pub = rospy.Publisher('cmd_vel', Twist, queue_size=100)
-        # rate = rospy.Rate(10) # 10hz
-        while not rospy.is_shutdown():
-            base_data = Twist()
-            base_data.linear.x = 3.5
+        # rate = rospy.Rate(1) # 10hz
+        base_data = Twist()
+        base_data.linear.x = 0
+        base_data.angular.z = pi/2 #1.57 radians per second = 90 DEGREES
+        t_end = time.time() + 1
+        while time.time() <t_end:
+            base_data.angular.z = -(pi/2)
             pub.publish(base_data)
+        base_data.angular.z = 0
+        pub.publish(base_data)
+        print("yo2")
+            
         self._mover.publish(movement)
         # rate.sleep()
-
-
-
 
 
     def check_ingredients(self):
