@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 import rospy
 import time
+from time import perf_counter_ns
 from math import pi
 from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Pose
 class Robot:
     def __init__(self, goal_ingredients, replacements):
         self._mover = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -29,6 +31,7 @@ class Robot:
 
         return result
         
+        
     def move(self, direction):
         print("yo")
         movement = Twist()
@@ -36,12 +39,22 @@ class Robot:
         # rate = rospy.Rate(1) # 10hz
         base_data = Twist()
         base_data.linear.x = 0
-        base_data.angular.z = pi/2 #1.57 radians per second = 90 DEGREES
-        t_end = time.time() + 1
-        while time.time() <t_end:
-            base_data.angular.z = -(pi/2)
-            pub.publish(base_data)
-        base_data.angular.z = 0
+        
+#angular velocity increases to 90 degrees for 1 second. innacurate.
+#        base_data.angular.z = pi/2 #1.57 radians per second = 90 DEGREES
+#        t_end = time.time() + 1
+#        while time.time() <t_end:
+#            base_data.angular.z = -(pi/2)
+#            pub.publish(base_data)
+#        base_data.angular.z=-(pi/2)
+
+#nanoseconds timer - still innacurate
+#        t1_start = perf_counter_ns()
+#        while (perf_counter_ns()-(t1_start)) < 1000000000:
+#                pub.publish(base_data)
+#                print((perf_counter_ns() -(t1_start))/1000000000)
+#        base_data.angular.z = 0
+#        t1_stop = perf_counter_ns()
         pub.publish(base_data)
         print("yo2")
             
