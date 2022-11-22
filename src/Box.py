@@ -1,45 +1,55 @@
 class Box:
-    def __init__(self, name, possible_ingredients, ingredients):
-        self._name = name
-        possible_ingredients.sort()
-        self._possible_ingredients = possible_ingredients
-        ingredients.sort()
-        self._ingredients = self.set_ingredients(ingredients)
 
-    def set_ingredients(self, ingredients):
-        current = 0
-        result = {}
-        for ingredient in self._possible_ingredients:
-            result.update({ingredient: []})
-            while(current != len(ingredients) and ingredient == ingredients[current]):
-                result[ingredient].append(ingredients[current])
-                current += 1
-        return result
-	
+    # original form:
+    # Box("Dairy", ["milk", "oat milk", "almond milk"], ["milk", "milk", "milk" "oat milk", "almond milk"]))
+
+    # new form:
+    # Box("Dairy", {"milk": 3, "oat milk": 1, "almond milk": 1})
+    # all possible box ingredients are included in dictionary, but OOS items will have quantity 0
+
+    def __init__(self, name, available_ingredients):
+        # name is a string of the form: "Dairy"
+        # available ingredients is a dictionary of items and quantities of the form:
+        # {"milk": 3, "oat milk": 1, "almond milk": 1}
+        self._name = name
+        self._available_ingredients = available_ingredients
+
+    def set_ingredients(self, ingredients): # used to initially set the ingredients in a box along with quantities of each
+        self._available_ingredients = ingredients
+
     def check_for_ingredient(self, ingredient):
-        return ingredient in self._ingredients[ingredient]
+        return (ingredient in self._available_ingredients.keys()  # if ingredient exists in box (0+ items)
+                and self._available_ingredients[ingredient] > 0)  # and is in stock (1+ items) return True
 
     def can_put_ingredient(self, ingredient):
-        return ingredient in self._ingredients.keys()
+        return ingredient in self._available_ingredients.keys()  # if ingredient is one of the possible ingredients in this box return True
 
-    def retrieve_ingredient(self, ingredient):
-        temp = self._ingredients[ingredient]
-        res = temp.pop()
-        self._ingredients.update({ingredient: temp})
-        return res
+    def retrieve_ingredient(self, ingredient):  # remove ingredient from box
+        if self.check_for_ingredient(ingredient):  # if ingredient is in stock
+            self._available_ingredients[ingredient] -= 1  # subtract one from quantity of item available
+            return ingredient  # return the requested ingredient
+        return -1  # if ingredient is out of stock/ not in this box then return -1
 
-    def add_ingredient(self, ingredient):
-        temp = self._ingredients[ingredient]
-        temp.append(ingredient)
-        self._ingredients.update({ingredient : temp})
+    def add_ingredient(self, ingredient):  # add ingredient to box
+        if self.can_put_ingredient(ingredient):  # if we can put the ingredient in the box
+            self._available_ingredients[ingredient] += 1  # increment item quantity by one
+        else:
+            # if ingredient cannot be added, don't do anything
+            print("*tried to add invalid item to box*")
+
+    def is_empty(self):  # check if box is empty
+        return all(v == 0 for v in self._available_ingredients.values())  # if all item quantities are 0, i.e. box is empty
+
+    def get_name(self):
+        return self._name
+
+    def get_available_ingredients(self):
+        return self._available_ingredients
 
     def __str__(self):
         return self._name + " box"
 
-    def is_empty(self):
-        return self._ingredients == []
-
-# shop contains boxes
+# shop contains boxes,
 # boxes contain ingredients
-# boxes = what it cann carry
+# boxes = what it can carry
 # what it does carry

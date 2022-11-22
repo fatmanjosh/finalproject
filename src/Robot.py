@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import math
 
 import rospy
@@ -5,6 +6,15 @@ from geometry_msgs.msg import Twist, Point, PoseWithCovarianceStamped
 from math import atan2, pi
 from nav_msgs.msg import Odometry
 
+=======
+#!/usr/bin/python3
+import rospy
+import time
+from time import perf_counter_ns
+from math import pi
+from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Pose
+>>>>>>> e88bb229d3a3db4e99559770cf5533566122d784
 class Robot:
     def __init__(self, goal_ingredients, replacements):
         self._mover = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -33,6 +43,7 @@ class Robot:
         print(result)
 
         return result
+<<<<<<< HEAD
 
     def newOdom(self, msg):
         # pass
@@ -153,8 +164,6 @@ class Robot:
         #     print(f"{x_change} and {y_change}\n")
 
             # r.sleep()
-
-
 
 
     def check_ingredients(self):
