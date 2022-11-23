@@ -1,24 +1,16 @@
-<<<<<<< HEAD
-import math
+#!/usr/bin/env python
 
+import math
+from time import perf_counter_ns
 import rospy
-from geometry_msgs.msg import Twist, Point, PoseWithCovarianceStamped
+from geometry_msgs.msg import Twist, Point, PoseWithCovarianceStamped,Pose
 from math import atan2, pi
 from nav_msgs.msg import Odometry
 
-=======
-#!/usr/bin/python3
-import rospy
-import time
-from time import perf_counter_ns
-from math import pi
-from geometry_msgs.msg import Twist
-from geometry_msgs.msg import Pose
->>>>>>> e88bb229d3a3db4e99559770cf5533566122d784
 class Robot:
     def __init__(self, goal_ingredients, replacements):
         self._mover = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-        self._initialiser = rospy.Publisher('initialpose', PoseWithCovarianceStamped, queue_size=10)
+        self._initialiser = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=10)
         self._listener = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.newOdom)
         rospy.init_node('mover', anonymous=True)
         self._goal_ingredients = goal_ingredients
@@ -26,7 +18,7 @@ class Robot:
         self._out_of_stock = ["milk", "almond milk"]
         self._replacements = self.update_food_dictionary(replacements)
         self._facing = "RIGHT"
-        self.location = "s8"
+        self._location = "s8"
 
         # oat milk : almond milk -- mapping oat to almond as an alternative
 
@@ -43,7 +35,6 @@ class Robot:
         print(result)
 
         return result
-<<<<<<< HEAD
 
     def newOdom(self, msg):
         # pass
@@ -55,9 +46,10 @@ class Robot:
         y = msg.pose.pose.position.y
 
         theta = msg.pose.pose.orientation.z
-        print(f"theta{theta}")
+        print(x + " " + y)
 
         print("\n\n\n\n looooooooool \n\n\n\n\n\n")
+        
     def left_or_right(self, direction):
         set_vel = Twist()
 
@@ -82,33 +74,25 @@ class Robot:
     def forward(self):
         set_vel = Twist()
         r = rospy.Rate(5)
-
+        speed = 0.5
         set_vel.linear.x = 0.5
-        set_vel.angular.z = 0
-        times = 0
-        # r.sleep()
-        # r.sleep()
-        r.sleep()
-        self._mover.publish(set_vel)  # // we publish the same message many times because otherwise robot will stop
-        r.sleep()
+        """     
+        cell_distance = 5
+        current_distance = 0
+        t0 = rospy.Time.now().to_sec()
+        while(current_distance < cell_distance):
+            self._mover.publish(set_vel)
+            t1 = rospy.Time.now().to_sec()
+            current_distance = speed * (t1-t0)
+            r.sleep()
         set_vel.linear.x = 0
         self._mover.publish(set_vel)
-
-        # for x in range(2):
-        set_vel.linear.x = 5
-        # set_vel.angular.z = 0
-        # r = rospy.Rate(5)
-        times = 0
-        #
-        # r.sleep()
-        # r.sleep()
-        r.sleep()
+        """
         for i in range(17):
             self._mover.publish(set_vel)  # // we publish the same message many times because otherwise robot will stop
             r.sleep()
         set_vel.linear.x = 0
         self._mover.publish(set_vel)
-
 
         # r.sleep()
 
@@ -225,15 +209,15 @@ class Robot:
 if __name__ == '__main__':
     try:
         robot = Robot([],[])
-        for i in range(2):
-            robot.left_or_right("LEFT")
+        #for i in range(2):
+        #    robot.left_or_right("LEFT")
 
         robot.forward()
 
-        robot.left_or_right("RIGHT")
-        for j in range(5):
-            robot.forward()
-        rospy.spin()
+        #robot.left_or_right("RIGHT")
+        #for j in range(5):
+        #    robot.forward()
+        #rospy.spin()
     except rospy.ROSInterruptException:
         pass
 
