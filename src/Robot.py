@@ -1,17 +1,24 @@
-#!/usr/bin/python3
+#!/usr/bin/env python
+
+import math
+from time import perf_counter_ns
 import rospy
-import time
-from math import pi
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, Point, PoseWithCovarianceStamped,Pose
+from math import atan2, pi
+from nav_msgs.msg import Odometry
+
 class Robot:
     def __init__(self, goal_ingredients, replacements):
         self._mover = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        self._initialiser = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=10)
+        self._listener = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.newOdom)
         rospy.init_node('mover', anonymous=True)
         self._goal_ingredients = goal_ingredients
         self._inventory = []
         self._out_of_stock = ["milk", "almond milk"]
         self._replacements = self.update_food_dictionary(replacements)
         self._facing = "RIGHT"
+        self._location = "s8"
 
         # oat milk : almond milk -- mapping oat to almond as an alternative
 
@@ -28,25 +35,119 @@ class Robot:
         print(result)
 
         return result
+
+    def newOdom(self, msg):
+        # pass
+        global x
+        global y
+        global theta
+
+        x = msg.pose.pose.position.x
+        y = msg.pose.pose.position.y
+
+        theta = msg.pose.pose.orientation.z
+        print(x + " " + y)
+
+        print("\n\n\n\n looooooooool \n\n\n\n\n\n")
         
-    def move(self, direction):
-        print("yo")
-        movement = Twist()
-        pub = rospy.Publisher('cmd_vel', Twist, queue_size=100)
-        # rate = rospy.Rate(1) # 10hz
-        base_data = Twist()
-        base_data.linear.x = 0
-        base_data.angular.z = pi/2 #1.57 radians per second = 90 DEGREES
-        t_end = time.time() + 1
-        while time.time() <t_end:
-            base_data.angular.z = -(pi/2)
-            pub.publish(base_data)
-        base_data.angular.z = 0
-        pub.publish(base_data)
-        print("yo2")
-            
-        self._mover.publish(movement)
-        # rate.sleep()
+    def left_or_right(self, direction):
+        set_vel = Twist()
+
+
+        dict = {"RIGHT" : -2.5, "LEFT" : 2.5}
+
+        # for x in range(2):
+        set_vel.linear.x = 0
+        set_vel.angular.z = dict[direction]
+        r = rospy.Rate(5)
+        times = 0
+        #
+        r.sleep()
+        r.sleep()
+        for i in range(5):
+            self._mover.publish(set_vel) #// we publish the same message many times because otherwise robot will stop
+            r.sleep()
+        set_vel.angular.z = 0
+        self._mover.publish(set_vel)
+
+
+    def forward(self):
+        set_vel = Twist()
+        r = rospy.Rate(5)
+        speed = 0.5
+        set_vel.linear.x = 0.5
+        """     
+        cell_distance = 5
+        current_distance = 0
+        t0 = rospy.Time.now().to_sec()
+        while(current_distance < cell_distance):
+            self._mover.publish(set_vel)
+            t1 = rospy.Time.now().to_sec()
+            current_distance = speed * (t1-t0)
+            r.sleep()
+        set_vel.linear.x = 0
+        self._mover.publish(set_vel)
+        """
+        for i in range(17):
+            self._mover.publish(set_vel)  # // we publish the same message many times because otherwise robot will stop
+            r.sleep()
+        set_vel.linear.x = 0
+        self._mover.publish(set_vel)
+
+        # r.sleep()
+
+            # set_vel.linear.x = 0.2
+        #
+        # movement = Twist()
+        #
+        # # while not rospy.is_shutdown():
+        # # # for i in range(1000):
+        # #     movement.linear.x = 1
+        # #     self._mover.publish(movement)
+        # #     # i = i + 1
+        # #     # if i == 100000000000:
+        # #     #     rospy.signal_shutdown("lols")
+        #
+
+        # r = rospy.Rate(100)
+
+
+        # while not rospy.is_shutdown():
+        #     rospy.wait_for_message("/amcl_pose", PoseWithCovarianceStamped, 100)
+        #     print(theta)
+        #
+        #     goal = Point()
+        #
+        #     print(f"x: {x}, y:{y}")
+        #     print(f"goal1{goal}")
+        #     goal.x = x + dict[direction][0]
+        #     goal.y = y + dict[direction][1]
+        #
+        #     print(f"goal2{goal}")
+        #
+        #     x_change = goal.x - x
+        #     print(f"x_change{x_change}\n")
+        #     y_change = goal.y - y
+        #     print(f"y_change{y_change}\n")
+        #
+        #     angle_to_goal = atan2(y_change, x_change)
+        #
+        #
+        #     print(f"ang = {angle_to_goal}\n")
+        #     print(f"theta = {theta}\n")
+        #
+        #     movement = Twist()
+        #
+        #     if abs(angle_to_goal - theta) > 0.01:
+        #         movement.linear.x = 0.0
+        #         movement.angular.z = 0.3
+        #     else:
+        #         movement.linear.x = 0.5
+        #         movement.angular.z = 0.0
+        #     self._mover.publish(movement)
+        #     print(f"{x_change} and {y_change}\n")
+
+            # r.sleep()
 
 
     def check_ingredients(self):
@@ -108,8 +209,15 @@ class Robot:
 if __name__ == '__main__':
     try:
         robot = Robot([],[])
-        robot.move("RIGHT")
-        # rospy.spin()
+        #for i in range(2):
+        #    robot.left_or_right("LEFT")
+
+        robot.forward()
+
+        #robot.left_or_right("RIGHT")
+        #for j in range(5):
+        #    robot.forward()
+        #rospy.spin()
     except rospy.ROSInterruptException:
         pass
 
