@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import random
 import rospy
 import map, transitions, heatmap
@@ -8,11 +8,19 @@ class Shop:
         
         self.states = map.states()
         self.possible_transitions = map.possible_transitions()
-        self.transitions = transitions.transitions()
+        self.people = heatmap.heatmap.stateUncertenty(0)
+        # self.people = [1,1,1,1]
+        print("entering transitions")
+        self.transitions = transitions.transitions(self.people)
+        print (sorted(self.people))
+        print ("entering rewards")
         self.rewards = self.generate_rewards()
-
+        print ("entering policy iteration")
         self.policy_iteration()
-
+        self.people = heatmap.heatmap.stateUncertenty(1)
+        self.transitions = transitions.transitions(self.people)
+        print (sorted(self.people))
+        self.policy_iteration()
 
     def generate_rewards(self):
         rewards = {}
@@ -37,7 +45,8 @@ class Shop:
         rewards = self.rewards  # Direct rewards per state
         gamma = 0.9             # discount factor
         # Transition probabilities per state-action pair
-        probs = self.transitions = transitions.transitions()
+
+        probs = self.transitions    # added uncertanty based on the heatmap
 
         # Set value iteration parameters
         max_policy_iter = 10000     # Maximum number of iterations
@@ -46,6 +55,8 @@ class Shop:
 
         V = {}
         pi = {}
+
+        print("entering loop")
         for state in states:
             V[state] = 0    # Initialize values
             pi[state] = random.choice(self.possible_transitions[state]) # Initialize 
@@ -53,7 +64,6 @@ class Shop:
         for i in range(max_policy_iter):
             # Initial assumption: policy is stable
             optimal_policy_found = True
-
             # Policy evaluation
             # Compute value for each state under current policy
             for j in range(max_value_iter):
@@ -63,7 +73,7 @@ class Shop:
                     # Compute state value
                     val = rewards[s]  # Get direct reward
                     for s_next in states:
-                        val += probs[pi[s]][s][s_next] * (
+                        val += probs[pi[s]][s][s_next] * (  # literally uncertainty * gamma * V[next]
                                 gamma * V[s_next]
                         )  # Add discounted downstream values
 

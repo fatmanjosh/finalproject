@@ -1,4 +1,5 @@
- 
+#!/usr/bin/env python3
+
     
 def grid_map():
     grid_map = [[0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -15,7 +16,7 @@ def grid_map():
     return grid_map
 
 def boxes():
-    boxes = {"Dairy" : "s0",}
+    # Now I guess we don't use this
     return boxes
 
 def states():
