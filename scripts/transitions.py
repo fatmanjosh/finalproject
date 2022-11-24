@@ -29,18 +29,13 @@ def transition_states(direction, x, y, people):
     for state in states:
         transition_dict[state] = {}
         for next_state in states:
-
+            uncertainty = round(people.count(int(''.join(filter(str.isdigit, next_state)))) / 10,1)
+            # if(uncertainty >= 0.8):
+            #     uncertainty = 0.8
             #if self.possible_transitions[state] == ["TERMINAL"]:
             #    transition_dict[state][next_state] = 1
             if next_state == state: # if the next state and the start state are the same
-                uncertainty = round(people.count(int(''.join(filter(str.isdigit, next_state)))) / 10,1)
-                # print("***** The uncertainty is this ******")
-                # print(uncertainty)
 
-                if(uncertainty >= 0.8):
-                    uncertainty = 0.8
-                if(uncertainty <= 0.2):
-                    uncertainty = 0.2
 
                 if not direction in possible_transitions[state]:# if you cant move in that direction from state
                     transition_dict[state][next_state] = 1   # stay where you are

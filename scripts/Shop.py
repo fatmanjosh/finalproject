@@ -9,15 +9,10 @@ class Shop:
         self.states = map.states()
         self.possible_transitions = map.possible_transitions()
         self.people = heatmap.heatmap.stateUncertenty(0)
-        # self.people = [1,1,1,1]
-        print("entering transitions")
         self.transitions = transitions.transitions(self.people)
-        print (sorted(self.people))
-        print ("entering rewards")
         self.rewards = self.generate_rewards()
-        print ("entering policy iteration")
         self.policy_iteration()
-        self.people = heatmap.heatmap.stateUncertenty(1)
+        self.people = heatmap.heatmap.stateUncertenty(100)
         self.transitions = transitions.transitions(self.people)
         print (sorted(self.people))
         self.policy_iteration()
@@ -34,7 +29,7 @@ class Shop:
         # adding specific rewards for specific states
         rewards.update({"s0": 100})
         rewards.update({"s6": -100})
-
+ 
         return rewards
 
 
@@ -56,7 +51,6 @@ class Shop:
         V = {}
         pi = {}
 
-        print("entering loop")
         for state in states:
             V[state] = 0    # Initialize values
             pi[state] = random.choice(self.possible_transitions[state]) # Initialize 
