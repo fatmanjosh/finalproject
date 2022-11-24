@@ -212,8 +212,8 @@ if __name__ == '__main__':
         #for i in range(2):
         #    robot.left_or_right("LEFT")
 
+        #robot.left_or_right("LEFT")
         robot.forward()
-
         #robot.left_or_right("RIGHT")
         #for j in range(5):
         #    robot.forward()

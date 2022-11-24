@@ -41,7 +41,7 @@ def transition_states(direction, x, y, people):
             if next_state == state: # if the next state and the start state are the same
 
                 # print("***** The uncertainty is this ******")
-                print(f"state{state} uncertainty : {uncertainty}")
+                # print(f"state{state} uncertainty : {uncertainty}")
 
 
 
