@@ -25,28 +25,38 @@ def transition_states(direction, x, y, people):
     states = map.states()
     possible_transitions = map.possible_transitions()
 
+    uncertainty = -1
+
     transition_dict = {}
     for state in states:
         transition_dict[state] = {}
+        calculated = False
         for next_state in states:
+
+
+            # 10 people per state
 
             #if self.possible_transitions[state] == ["TERMINAL"]:
             #    transition_dict[state][next_state] = 1
             if next_state == state: # if the next state and the start state are the same
-                uncertainty = round(people.count(int(''.join(filter(str.isdigit, next_state)))) / 10,1)
-                # print("***** The uncertainty is this ******")
-                # print(uncertainty)
 
-                if(uncertainty >= 0.8):
-                    uncertainty = 0.8
-                if(uncertainty <= 0.2):
-                    uncertainty = 0.2
+                # print("***** The uncertainty is this ******")
+                print(f"state{state} uncertainty : {uncertainty}")
+
+
 
                 if not direction in possible_transitions[state]:# if you cant move in that direction from state
                     transition_dict[state][next_state] = 1   # stay where you are
                 else:
+                    if calculated == False:
+                        uncertainty = people.count(int(''.join(filter(str.isdigit, next_state)))) / 10
+                        calculated = True
+
                     transition_dict[state][next_state] = uncertainty    # otherwise you have a probability of not moving 0.2
             elif direction in possible_transitions[state] and states[state][0] + x == states[next_state][0] and states[state][1] + y == states[next_state][1]: #if you can go in the direction
+                if calculated == False:
+                    uncertainty = people.count(int(''.join(filter(str.isdigit, next_state)))) / 10
+                    calculated = True
                 transition_dict[state][next_state] = 1 - uncertainty        #and if the state in the direction
             else:                                                       #is the next state then if more then 10 people there can't go there
                 transition_dict[state][next_state] = 0 # if you can t go there then probability 0
