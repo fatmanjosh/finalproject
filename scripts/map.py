@@ -74,7 +74,7 @@ def possible_transitions():
             "s21" : [UP, DOWN],
             "s22" : [RIGHT, UP, DOWN],
             "s23" : [LEFT],
-            "s24" : [LEFT, UP, DOWN],
+            "s24" : [RIGHT, UP, DOWN],
             "s25": [LEFT],
             "s26": [UP, DOWN],
             "s27": [RIGHT],
