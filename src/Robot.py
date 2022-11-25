@@ -49,10 +49,69 @@ class Robot:
         print(x + " " + y)
 
         print("\n\n\n\n looooooooool \n\n\n\n\n\n")
-        
-    def left_or_right(self, direction):
-        set_vel = Twist()
 
+    def move_using_policy_iteration(self, states_dict, policy_iteration_transitions):
+        # states_dict will need to be passed in from map.states()
+        # policy_iteration_transitions will need to be passed in from Shop.get_pi_transitions()
+        current_state = self._location
+        direction_to_move = policy_iteration_transitions[current_state]  # returns a direction, e.g. "RIGHT"
+        current_state_coords = states_dict[current_state]  # returns a co-ordinate tuple
+        if direction_to_move == "TERMINAL":
+            print("terminal state reached")
+            return True
+        elif direction_to_move == "RIGHT":
+            new_state_coords = (current_state_coords[0]+1, current_state_coords[1])
+        elif direction_to_move == "LEFT":
+            new_state_coords = (current_state_coords[0]-1, current_state_coords[1])
+        elif direction_to_move == "UP":
+            new_state_coords = (current_state_coords[0], current_state_coords[1]+1)
+        elif direction_to_move == "DOWN":
+            new_state_coords = (current_state_coords[0], current_state_coords[1]-1)
+        else:
+            print("uh oh")
+
+        # get state number with co-ords new_state_coords
+        new_state = list(states_dict.keys())[list(states_dict.values()).index(new_state_coords)]
+        print(f"new state coords: {new_state_coords} new state: {new_state}")
+        self.move_cell(direction_to_move)
+        self._location = new_state
+        return False
+
+
+    def move_cell(self, direction_to_move):
+        all_directions = ["UP", "RIGHT", "DOWN", "LEFT"]  # array that will be used circularly for directions
+        current_direction = self._facing
+        print(f"currently facing: {current_direction}, required: {direction_to_move}")
+        while current_direction != direction_to_move:  # turn until facing the required direction of movement
+
+            # if required direction is to the right of current direction
+            if all_directions.index(direction_to_move) == (all_directions.index(current_direction) + 1) % 4:
+                print("turning right")
+                self.left_or_right("RIGHT")  # then move to the right
+                current_direction = all_directions[(all_directions.index(current_direction) + 1) % 4]
+            else:  # in all other cases, turn left
+                print("turning left")
+                self.left_or_right("LEFT")
+                current_direction = all_directions[(all_directions.index(current_direction) - 1) % 4]
+
+                # inefficient as robot only moves left
+                # if current_direction == "UP":
+                #     current_direction = "LEFT"
+                # elif current_direction == "LEFT":
+                #     current_direction = "DOWN"
+                # elif current_direction == "DOWN":
+                #     current_direction = "RIGHT"
+                # elif current_direction == "RIGHT":
+                #     current_direction = "UP"
+                # else:
+                #     print("nopee")
+
+        self._facing = current_direction  # robot is now facing the correct direction so update self._facing
+        print(f"now moving: {current_direction}")
+        self.forward()
+
+    def left_or_right(self, direction):  # used to turn in the given direction
+        set_vel = Twist()
 
         dict = {"RIGHT" : -2.5, "LEFT" : 2.5}
 
@@ -88,7 +147,8 @@ class Robot:
         set_vel.linear.x = 0
         self._mover.publish(set_vel)
         """
-        for i in range(17):
+
+        for i in range(35):
             self._mover.publish(set_vel)  # // we publish the same message many times because otherwise robot will stop
             r.sleep()
         set_vel.linear.x = 0
@@ -208,16 +268,47 @@ class Robot:
 
 if __name__ == '__main__':
     try:
-        robot = Robot([],[])
-        #for i in range(2):
+        robot = Robot([], [])
+
+        # robot.move_cell("LEFT")
+        # robot.move_cell("LEFT")
+        # robot.move_cell("LEFT")
+        # robot.move_cell("UP")
+        # robot.move_cell("RIGHT")
+        # robot.move_cell("LEFT")
+        # robot.move_cell("UP")
+        # robot.move_cell("DOWN")
+
+        states = {'s0':  (0, 0),  's1': (1, 0),  's2': (2, 0),  's3': (3, 0),  's4': (4, 0),  's5': (5, 0),  's6': (6, 0),  's7': (7, 0),  's8': (8, 0),
+              's9':  (1, 1), 's10': (2, 1), 's11': (3, 1), 's12': (5, 1), 's13': (6, 1), 's14': (7, 1), 's15': (8, 1),
+              's16': (1, 2), 's17': (2, 2), 's18': (3, 2), 's19': (4, 2), 's20': (5, 2), 's21': (7, 2),
+              's22': (1, 3), 's23': (2, 3), 's24': (3, 3), 's25': (4, 3), 's26': (5, 3), 's27': (6, 3), 's28': (7, 3),
+              's29': (0, 4), 's30': (1, 4), 's31': (2, 4), 's32': (3, 4), 's33': (5, 4), 's34': (7, 4),
+              's35': (1, 5), 's36': (2, 5), 's37': (3, 5), 's38': (4, 5), 's39': (5, 5), 's40': (6, 5), 's41': (7, 5), 's42': (8, 5),
+              's43': (0, 6), 's44': (1, 6), 's45': (2, 6), 's46': (3, 6), 's47': (5, 6), 's48': (6, 6), 's49': (7, 6),
+              's50': (1, 7), 's51': (3, 7), 's52': (4, 7), 's53': (5, 7), 's54': (7, 7), 's55': (8, 7),
+              's56': (0, 8), 's57': (1, 8), 's58': (2, 8), 's59': (3, 8), 's60': (5, 8), 's61': (6, 8), 's62': (7, 8),
+              's63': (0, 9), 's64': (1, 9), 's65': (2, 9), 's66': (3, 9), 's67': (4, 9), 's68': (5, 9), 's69': (6, 9), 's70': (7, 9), 's71': (8, 9),
+              's72': (0, 10), 's73': (2, 10), 's74': (4, 10), 's75': (7, 10), 's76': (8, 10)}
+
+        pi = {'s0': 'TERMINAL', 's1': 'LEFT', 's2': 'LEFT', 's3': 'LEFT', 's4': 'LEFT', 's5': 'LEFT', 's6': 'TERMINAL', 's7': 'UP', 's8': 'UP', 's9': 'DOWN', 's10': 'LEFT', 's11': 'DOWN', 's12': 'TERMINAL', 's13': 'LEFT', 's14': 'UP', 's15': 'LEFT', 's16': 'DOWN', 's17': 'RIGHT', 's18': 'DOWN', 's19': 'RIGHT', 's20': 'UP', 's21': 'UP', 's22': 'DOWN', 's23': 'LEFT', 's24': 'DOWN', 's25': 'LEFT', 's26': 'UP', 's27': 'RIGHT', 's28': 'UP', 's29': 'RIGHT', 's30': 'DOWN', 's31': 'RIGHT', 's32': 'DOWN', 's33': 'UP', 's34': 'UP', 's35': 'DOWN', 's36': 'LEFT', 's37': 'DOWN', 's38': 'LEFT', 's39': 'LEFT', 's40': 'LEFT', 's41': 'LEFT', 's42': 'LEFT', 's43': 'RIGHT', 's44': 'DOWN', 's45': 'DOWN', 's46': 'DOWN', 's47': 'DOWN', 's48': 'DOWN', 's49': 'DOWN', 's50': 'DOWN', 's51': 'DOWN', 's52': 'LEFT', 's53': 'DOWN', 's54': 'DOWN', 's55': 'LEFT', 's56': 'RIGHT', 's57': 'DOWN', 's58': 'UP', 's59': 'DOWN', 's60': 'DOWN', 's61': 'UP', 's62': 'DOWN', 's63': 'RIGHT', 's64': 'DOWN', 's65': 'LEFT', 's66': 'DOWN', 's67': 'LEFT', 's68': 'DOWN', 's69': 'LEFT', 's70': 'LEFT', 's71': 'LEFT', 's72': 'DOWN', 's73': 'DOWN', 's74': 'DOWN', 's75': 'DOWN', 's76': 'DOWN'}
+
+        for i in range (30):
+            if robot.move_using_policy_iteration(states, pi):  # if terminal state reached
+                break
+
+
+        # for i in range(2):
         #    robot.left_or_right("LEFT")
-
-        robot.forward()
-
-        #robot.left_or_right("RIGHT")
-        #for j in range(5):
+        #
+        # # robot.forward()
+        # robot.forward()
+        #
+        # robot.left_or_right("RIGHT")
+        # for j in range(5):
         #    robot.forward()
-        #rospy.spin()
+
+        rospy.spin()
     except rospy.ROSInterruptException:
         pass
 
