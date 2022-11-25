@@ -3,16 +3,16 @@
 import math
 from time import perf_counter_ns
 import rospy
-from geometry_msgs.msg import Twist, Point, PoseWithCovarianceStamped,Pose
+from geometry_msgs.msg import Twist, Point, PoseWithCovarianceStamped, Pose
 from math import atan2, pi
 from nav_msgs.msg import Odometry
 
 class Robot:
     def __init__(self, goal_ingredients, replacements):
         self._mover = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
-        self._initialiser = rospy.Publisher('/initialpose', PoseWithCovarianceStamped, queue_size=10)
+        self._robot_publisher = rospy.Publisher('/robot_location', PoseWithCovarianceStamped, queue_size=10)
         self._listener = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.newOdom)
-        rospy.init_node('mover', anonymous=True)
+        # rospy.init_node('mover', anonymous=True)
         self._goal_ingredients = goal_ingredients
         self._inventory = []
         self._out_of_stock = ["milk", "almond milk"]
@@ -20,7 +20,19 @@ class Robot:
         self._facing = "RIGHT"
         self._location = "s8"
 
+
         # oat milk : almond milk -- mapping oat to almond as an alternative
+
+    # def check_if_at_box(self):
+    #     if
+
+    def get_location(self):
+        return self._location
+
+    def check_if_at_box(self, box_states):
+        if(self._location in box_states):
+            return True
+        return False
 
     def update_food_dictionary(self, replacements):
         """
@@ -209,6 +221,14 @@ class Robot:
 
             # r.sleep()
 
+    def send_robot_location(self, coord):
+        current_pose = PoseWithCovarianceStamped()
+        current_pose.pose.pose.position.x = coord[0]
+        current_pose.pose.pose.position.y = coord[1]
+        self._robot_publisher.publish(current_pose)
+        print("published")
+
+
 
     def check_ingredients(self):
 
@@ -319,4 +339,15 @@ if __name__ == '__main__':
         rospy.spin()
     except rospy.ROSInterruptException:
         pass
+
+
+
+
+
+
+
+
+
+
+
 

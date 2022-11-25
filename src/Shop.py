@@ -4,7 +4,7 @@ import rospy
 import map, transitions, heatmap
 
 class Shop:
-    def __init__(self):
+    def __init__(self, boxes):
         # comment the top block to run in ide for debugging
         # comment the bottom block to run on ide
         ##############################################################
@@ -29,6 +29,17 @@ class Shop:
         self.grid_map = self.shrink_map()
         self.states = self.generate_states()
         """
+
+
+        print("Here are the states of each box\n\n\n\n")
+        self.box_states = self.generate_box_states(boxes)
+
+
+
+
+
+        self.pi_transitions = {}
+        self.pi_values = {}
         self.states = map.states()
         self.possible_transitions = map.possible_transitions()
         self.actions = map.actions()
@@ -41,6 +52,30 @@ class Shop:
         print (sorted(self.people))
         self.policy_iteration()
 
+    def get_box_states(self):
+        return self.box_states
+
+    def generate_box_states(self, boxes):
+        possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
+        box_states = {}
+        for box in boxes:
+            selected_state = random.choice(possible_box_locations)
+            possible_box_locations.remove(selected_state)
+            box_states["s" + str(selected_state)] = box
+            print(f"{selected_state} : {box}")
+
+        return box_states
+
+    def update_box_states(self, state):
+        self.box_states.pop(state)
+
+    def print_box_states(self):
+        print("boxes left : \n")
+        for state, box in self.box_states.items():
+            print(f"{state} : {box}")
+
+
+
     def generate_rewards(self):
         rewards = {}
         state_no = "s"
@@ -48,13 +83,29 @@ class Shop:
         for row in range(11):
             for col in range(9):
                 if map.grid_map()[row][col] == 0:
-                    rewards[str(state_no) + str(i)] = -1
+                    state = str(state_no) + str(i)
+                    if(state in self.box_states.keys()):
+                        rewards[state] = 100
+                    else:
+                        rewards[state] = -1
                     i += 1
+
+        # print(rewards)
         # adding specific rewards for specific states
-        rewards.update({"s0": 100})
+        # rewards.update({"s0": 100})
         rewards.update({"s6": -100})
- 
+
         return rewards
+
+    def set_path_to_customer(self):
+        self.rewards.update({"s8" : 100})
+        print("Going back to customer")
+        self.policy_iteration()
+
+
+    def update_rewards(self, state):
+        self.rewards.update({state : -1})
+        self.policy_iteration()
 
     def policy_iteration(self):
         # Initialize Markov Decision Process model
@@ -131,14 +182,8 @@ class Shop:
 
             # print(i)
 
-        print(V)
+        # print(V)
+        # print(pi)
+        self.pi_values = V
+        self.pi_transitions = pi
 
-        print(pi)
-
-
-
-if __name__ == '__main__':
-
-    rospy.init_node("map_tester")
-    node = Shop()
-    rospy.spin()

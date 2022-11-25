@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 
+import rospy
 from Box import Box
 from Robot import Robot
 from Customer import Customer
+from Shop import Shop
+import map
 
 def main():
 
@@ -30,10 +33,35 @@ def main():
 
     myRobot = Robot(["milk"], replacements)
 
+    shop = Shop(boxes)
+
     if not myRobot.check_ingredients():
         myRobot.report_impossible_task()
 
-main()
 
+    box_count = len(boxes)
+    while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions):  # if terminal state reached
+        myRobot.send_robot_location(map.states()[myRobot.get_location()])
+        if myRobot.check_if_at_box(shop.get_box_states()):
+            shop.update_rewards(myRobot.get_location())
+            box_count -= 1
+            shop.update_box_states(myRobot.get_location())
+            shop.print_box_states()
+            if(box_count == 0):
+                shop.set_path_to_customer()
+
+
+
+        # print(myRobot._location)
+
+
+
+
+
+if __name__ == '__main__':
+
+    rospy.init_node("map_tester")
+    main()
+    rospy.spin()
 
 
