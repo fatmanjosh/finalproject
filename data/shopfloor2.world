@@ -54,6 +54,8 @@ window
 
   rotate [ 0.000 0.000 ]
   scale 20.0
+  
+  show_data 1
 )
 
 # load an environment bitmap
