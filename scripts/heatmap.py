@@ -10,6 +10,7 @@ class heatmap:
         self.people = []
         for i in range(nrPeople):
            self.people.append (randrange(0,len(map.states())-1,1))
+            #people [2, 2, 3, 4, 5,6,7, 6]
 
         self.possible_transitions = map.possible_transitions()
 
@@ -21,19 +22,6 @@ class heatmap:
             for i in range(len(people)):
                 if(possible_transitions["s" + str(people[i])] != ['TERMINAL']):
                     rn = random.choice(possible_transitions["s" + str(people[i])])
-
-                    # required python 3.10 +
-                    # match random.choice(possible_transitions["s" + str(people[i])]):
-                    #     case 'LEFT':
-                    #         people[i] -= 1
-                    #     case 'RIGHT':
-                    #         people[i] += 1
-                    #     case 'UP':
-                    #         people[i] = self.wackMoveUp(people[i])
-                    #     case 'DOWN':
-                    #         people[i] = self.wackMoveDown(people[i])
-                    #     case _:
-                    #         print ("Hello I am the guy that asked - debugger") 
 
                     if (rn == 'LEFT'):
                         people[i] -=1
@@ -76,4 +64,4 @@ class heatmap:
             if(allStates[nextState][0] == x and allStates[nextState][1] == y):
                 return int(''.join(filter(str.isdigit, nextState)))
 
-heatmap = heatmap(60)
+heatmap = heatmap(200)
