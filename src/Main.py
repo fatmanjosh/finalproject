@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import rospy
 from Box import Box
@@ -8,7 +8,9 @@ from Shop import Shop
 import map
 
 def main():
-
+    replacements = ["milk", "almond milk", "oat milk"]
+    myRobot = Robot(["milk"], replacements)
+    myRobot.send_robot_location(map.states()[myRobot.get_location()])
     boxes = []
     boxes.append(Box("Dairy", {"milk": 3, "oat milk": 1, "almond milk": 1}))
     boxes.append(Box("Meat", {"bacon": 2, "pork mince": 1, "ham": 3}))
@@ -28,10 +30,10 @@ def main():
     #print(f"quantity of olive oil: {boxes[3].get_available_ingredients()['olive']} \n")
 
 
-    replacements = ["milk", "almond milk", "oat milk"]
     #replacements = ["chicken", "cow", "pig", "baby sheep"]
 
-    myRobot = Robot(["milk"], replacements)
+
+
 
     shop = Shop(boxes)
 
