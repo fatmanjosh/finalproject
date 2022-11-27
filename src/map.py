@@ -54,8 +54,8 @@ def possible_transitions():
             "s3" : [LEFT, RIGHT, UP],
             "s4" : [LEFT, RIGHT],
             "s5" : [LEFT, RIGHT, UP],
-            # "s6" : [LEFT, RIGHT],
-            "s6": [TERMINAL],## changes here to add terminal states
+            "s6" : [LEFT, RIGHT],
+            # "s6": [TERMINAL],## changes here to add terminal states
             "s7" : [LEFT, RIGHT, UP],
             "s8" : [LEFT, RIGHT, UP],
             "s9" : [RIGHT, UP, DOWN],

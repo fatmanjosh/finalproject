@@ -7,13 +7,17 @@ from geometry_msgs.msg import Twist, Point, PoseStamped, Pose
 from math import atan2, pi
 from nav_msgs.msg import Odometry
 
+
 from geometry_msgs.msg import Quaternion
+from visualization_msgs.msg import MarkerArray, Marker
 
 
 class Robot:
     def __init__(self, goal_ingredients, replacements):
+
         self._mover = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self._robot_publisher = rospy.Publisher('/robot_location', PoseStamped)
+
         # self._listener = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.newOdom)
         # rospy.init_node('mover', anonymous=True)
         self._goal_ingredients = goal_ingredients
@@ -22,8 +26,11 @@ class Robot:
         self._replacements = self.update_food_dictionary(replacements)
         self._facing = "RIGHT"
         self._location = "s8"
-
         self.current_pose = PoseStamped()
+
+        self.mark_pub = rospy.Publisher('/marker', Marker, queue_size=10)
+
+
 
         # oat milk : almond milk -- mapping oat to almond as an alternative
 
@@ -32,6 +39,31 @@ class Robot:
 
     def get_location(self):
         return self._location
+
+    def markers(self):
+        marker = Marker()
+        # marker.pose = self.current_pose.pose
+        marker.header.frame_id = "/map"
+        marker.id = 0
+        marker.pose.position.x = 10
+        marker.pose.position.y = 10
+
+        marker.type = marker.CYLINDER
+        marker.action = 2
+        marker.color.r = 1
+        marker.color.g = 1
+        marker.color.b = 0.0
+        marker.color.a = 1
+        marker.scale.x = 10
+        marker.scale.y = 10
+        marker.scale.z = 100
+        marker.frame_locked = True
+        marker.ns = "Goal"
+
+        self.mark_pub.publish(marker)
+
+    # def move_with_probability(self):
+    #
 
     def check_if_at_box(self, box_states):
         if (self._location in box_states):
@@ -129,19 +161,46 @@ class Robot:
     def left_or_right(self, direction):  # used to turn in the given direction
         set_vel = Twist()
 
-        dict = {"RIGHT": -2.5, "LEFT": 2.5}
+        toTurn = {"RIGHT": -2.5, "LEFT": 2.5}
+        current_direction = {"LEFT": (-0.2, 0), "RIGHT": (0.2, 0), "UP": (0, 0.2), "DOWN": (0, -0.2)}
+
+        howToMOve = {"LEFT" : {"RIGHT" : (-0.2, -0.4, "UP"), "LEFT" : (0.2, -0.4, "DOWN")},
+                     "RIGHT": {"RIGHT" : (0.4, -0.2, "DOWN"), "LEFT" : (0, -0.2, "UP")},
+                     "UP"   : {"RIGHT" : (0, 0.2, "RIGHT"),   "LEFT" : (0.2, 0.4, "LEFT")},
+                     "DOWN" : {"RIGHT" : (-0.2, -0.4, "LEFT"),"LEFT" : (-0.4, 0.2, "RIGHT")}
+                     }
+
+        # if (self._facing == "RIGHT"):
+        #     self.current_pose.pose.orientation.w = -1
+        #     self.current_pose.pose.orientation.z = 0
+        # elif (self._facing == "LEFT"):
+        #     self.current_pose.pose.orientation.w = 0
+        #     self.current_pose.pose.orientation.z = 1
+        # elif (self._facing == "UP"):
+        #     self.current_pose.pose.orientation.w = -1
+        #     self.current_pose.pose.orientation.z = -1
+        # else:
+        #     self.current_pose.pose.orientation.w = 1
+        #     self.current_pose.pose.orientation.z = -1
 
         # for x in range(2):
         set_vel.linear.x = 0
-        set_vel.angular.z = dict[direction]
+        set_vel.angular.z = toTurn[direction]
         r = rospy.Rate(5)
         times = 0
         #
         r.sleep()
         r.sleep()
         for i in range(5):
-            self._mover.publish(set_vel)  # // we publish the same message many times because otherwise robot will stop
+            self.current_pose.pose.orientation.w += howToMOve[self._facing][direction][0]
+            self.current_pose.pose.orientation.z += howToMOve[self._facing][direction][1]
+            print(f"w:{self.current_pose.pose.orientation.w} z:{self.current_pose.pose.orientation.z}")
+            self._mover.publish(set_vel)
             r.sleep()
+            self._robot_publisher.publish(self.current_pose)
+            # self.marker[0].id += 1
+            # self.mark_pub.publish(self.marker)# // we publish the same message many times because otherwise robot will stop
+        self._facing = howToMOve[self._facing][direction][2]
         set_vel.angular.z = 0
         self._mover.publish(set_vel)
 
@@ -166,62 +225,16 @@ class Robot:
         for i in range(35):
             self._mover.publish(set_vel)  # // we publish the same message many times because otherwise robot will stop
             r.sleep()
+            self.move_robot_pose_forward()
         set_vel.linear.x = 0
         self._mover.publish(set_vel)
 
-        # r.sleep()
+    def move_robot_pose_forward(self):
+        dict = {"LEFT" : (-0.2, 0), "RIGHT" : (0.2, 0),"UP" : (0, 0.2),"DOWN" : (0, -0.2)}
+        self.current_pose.pose.position.x += dict[self._facing][0]
+        self.current_pose.pose.position.y += dict[self._facing][1]
+        self._robot_publisher.publish(self.current_pose)
 
-        # set_vel.linear.x = 0.2
-        #
-        # movement = Twist()
-        #
-        # # while not rospy.is_shutdown():
-        # # # for i in range(1000):
-        # #     movement.linear.x = 1
-        # #     self._mover.publish(movement)
-        # #     # i = i + 1
-        # #     # if i == 100000000000:
-        # #     #     rospy.signal_shutdown("lols")
-        #
-
-        # r = rospy.Rate(100)
-
-        # while not rospy.is_shutdown():
-        #     rospy.wait_for_message("/amcl_pose", PoseWithCovarianceStamped, 100)
-        #     print(theta)
-        #
-        #     goal = Point()
-        #
-        #     print(f"x: {x}, y:{y}")
-        #     print(f"goal1{goal}")
-        #     goal.x = x + dict[direction][0]
-        #     goal.y = y + dict[direction][1]
-        #
-        #     print(f"goal2{goal}")
-        #
-        #     x_change = goal.x - x
-        #     print(f"x_change{x_change}\n")
-        #     y_change = goal.y - y
-        #     print(f"y_change{y_change}\n")
-        #
-        #     angle_to_goal = atan2(y_change, x_change)
-        #
-        #
-        #     print(f"ang = {angle_to_goal}\n")
-        #     print(f"theta = {theta}\n")
-        #
-        #     movement = Twist()
-        #
-        #     if abs(angle_to_goal - theta) > 0.01:
-        #         movement.linear.x = 0.0
-        #         movement.angular.z = 0.3
-        #     else:
-        #         movement.linear.x = 0.5
-        #         movement.angular.z = 0.0
-        #     self._mover.publish(movement)
-        #     print(f"{x_change} and {y_change}\n")
-
-        # r.sleep()
 
     def send_robot_location(self, coord):
         print(self._facing)

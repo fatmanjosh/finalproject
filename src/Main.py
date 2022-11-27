@@ -42,7 +42,18 @@ def main():
 
 
     box_count = len(boxes)
-    while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions):  # if terminal state reached
+    print("hohoho")
+    i = 1
+    shop.publish_people()
+    shop.publish_boxes()
+    while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions):
+        if(i == 1):
+            print("change\n\n\n\n")
+            shop.heatmap.stateUncertenty(shop.NUM_OF_PEOPLE)
+            i = 0
+            shop.policy_iteration()
+            shop.publish_people()
+        # myRobot.markers()
         myRobot.send_robot_location(map.states()[myRobot.get_location()])
         if myRobot.check_if_at_box(shop.get_box_states()):
             shop.update_rewards(myRobot.get_location())
@@ -51,6 +62,7 @@ def main():
             shop.print_box_states()
             if(box_count == 0):
                 shop.set_path_to_customer()
+        i +=1
 
 
 
