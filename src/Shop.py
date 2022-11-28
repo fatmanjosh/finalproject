@@ -182,7 +182,7 @@ class Shop:
 
 
         r.sleep()
-        print(point_array)
+        # print(point_array)
         self.box_to_visit_pub.publish(point_array)
         r.sleep()
 

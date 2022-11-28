@@ -53,10 +53,10 @@ def main():
     while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions):  # until a terminal state is reached
         if(i == 1):  # TODO: does this always run? is there a better way to implement this?
             print("change\n\n\n\n")
-            print("calling state uncertainty")
-            print(f"before: {shop.people}")
+            # print("calling state uncertainty")
+            # print(f"before: {shop.people}")
             shop.set_people(1)
-            print(f"after: {shop.people}")
+            # print(f"after: {shop.people}")
 
             i = 0
             shop.transitions = transitions.transitions(shop.people)
