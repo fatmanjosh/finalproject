@@ -113,6 +113,15 @@ class Robot:
         print(f"now moving: {current_direction}")
         self.forward()
 
+
+    def turn(self, pre_coods, post_coords):
+        x = (post_coords[0] - pre_coods[0]) / 5
+        y = (post_coords[1] - pre_coods[1]) / 5
+        return -x, -y
+
+
+
+
     def left_or_right(self, direction):
         # used to turn in the given direction
         set_vel = Twist()
@@ -120,49 +129,129 @@ class Robot:
         toTurn = {"RIGHT": -2.5, "LEFT": 2.5}
         current_direction = {"LEFT": (-0.2, 0), "RIGHT": (0.2, 0), "UP": (0, 0.2), "DOWN": (0, -0.2)}
 
-        howToMOve = {"LEFT" : {"RIGHT" : (-0.2, -0.4, "UP"), "LEFT" : (0.2, -0.4, "DOWN")},
-                     "RIGHT": {"RIGHT" : (0.4, -0.2, "DOWN"), "LEFT" : (0, -0.2, "UP")},
-                     "UP"   : {"RIGHT" : (0, 0.2, "RIGHT"),   "LEFT" : (0.2, 0.4, "LEFT")},
-                     "DOWN" : {"RIGHT" : (-0.2, -0.4, "LEFT"),"LEFT" : (-0.4, 0.2, "RIGHT")}
+
+        howToMOve = {"LEFT" : {"RIGHT" : (-0.2, 0, "UP"), "LEFT" : (0.2, 0, "DOWN")},
+                     "RIGHT": {"RIGHT" : (0, 0.2, "DOWN"), "LEFT" : (0, -0.2, "UP")},
+                     "UP"   : {"RIGHT" : (0, 0.2, "RIGHT"),   "LEFT" : (0.2, 0, "LEFT")},
+                     "DOWN" : {"RIGHT" : (0.2, 0, "LEFT"),"LEFT" : (0, -0.2, "RIGHT")}
                      }
+        reset_coords = {"UP" : (-1, -1), "DOWN" : (-1, 1), "LEFT" : (0, -1), "RIGHT" : (-1, 0)}
 
         # if (self._facing == "RIGHT"):
-        #     self.current_pose.pose.orientation.w = -1
-        #     self.current_pose.pose.orientation.z = 0
+        #     self.current_pose.pose.orientation.w = -1 1
+        #     self.current_pose.pose.orientation.z =  0 0
         # elif (self._facing == "LEFT"):
-        #     self.current_pose.pose.orientation.w = 0
-        #     self.current_pose.pose.orientation.z = 1
+        #     self.current_pose.pose.orientation.w = 0  0       left to up 0 -1 to 1 1 anti
+        #     self.current_pose.pose.orientation.z = 1 -1       left to up 0 -1 to -1 -1 clockwise
         # elif (self._facing == "UP"):
-        #     self.current_pose.pose.orientation.w = -1
-        #     self.current_pose.pose.orientation.z = -1
+        #     self.current_pose.pose.orientation.w = -1 1     right to up go up to 1 1 go clockwise
+        #     self.current_pose.pose.orientation.z = -1 1     right to up to -1 -1 go anti clockwise
         # else:
-        #     self.current_pose.pose.orientation.w = 1
-        #     self.current_pose.pose.orientation.z = -1
+        #     self.current_pose.pose.orientation.w =  1  -1
+        #     self.current_pose.pose.orientation.z = -1   1
 
         # for x in range(2):
-        set_vel.linear.x = 0
-        set_vel.angular.z = toTurn[direction]
-        r = rospy.Rate(5)
-        times = 0
+
+
+        ##left to up 0 -1 to 1 1 anti
+        ##left to up 0 -1 to -1-1 clockwise YES
+
+        ##left to down 0 -1 to 1 -1 YES
+
+        ##right to up -1 0 go up to 1 1 go clockwise
+        ##right to up to -1 0 -1 -1 go anti clockwise YES
+
+        ##right to down -1 0 to 1 -1 ANTI NO
+        ##right to down -1 0 to -1 1 CW YES
+
+        ##up to left -1 -1 to 0 1 CW NO
+        ##up to left -1 -1 to 0 -1 ACW YES
+
+        ##up to right -1 -1 to -1 0 CW YES
+
+        ##down to right -1 1 to -1 0 ANTI YES
+
+        ##down to left -1 1 to 0 -1 ANTI NO
+        ##down to left -1 1 to 0 1  CW YES
+
+
+        # print(self.turn((-1, 1), (0, 1)))
         #
-        r.sleep()
-        r.sleep()
+        #
+        #
+        # print(f"currently facing: {self._facing}")
+        r = rospy.Rate(10)
+        # r.sleep()
+        # r.sleep()
+        # r.sleep()
+
+        self.current_pose.pose.orientation.w = reset_coords[self._facing][0]
+        self.current_pose.pose.orientation.z = reset_coords[self._facing][1]
+        print(reset_coords[self._facing][0])
+        print(reset_coords[self._facing][1])
+        self._robot_publisher.publish(self.current_pose)
         for i in range(5):
             self.current_pose.pose.orientation.w += howToMOve[self._facing][direction][0]
             self.current_pose.pose.orientation.z += howToMOve[self._facing][direction][1]
-            # print(f"w:{self.current_pose.pose.orientation.w} z:{self.current_pose.pose.orientation.z}")
-            self._mover.publish(set_vel)
-            r.sleep()
             self._robot_publisher.publish(self.current_pose)
-            # self.marker[0].id += 1
-            # self.mark_pub.publish(self.marker)# // we publish the same message many times because otherwise robot will stop
+            r.sleep()
         self._facing = howToMOve[self._facing][direction][2]
-        set_vel.angular.z = 0
-        self._mover.publish(set_vel)
+        #
+        #
+        #
+        # facing = "DOWN"
+        # turn = "LEFT"
+
+        # self.current_pose.pose.orientation.w = reset_coords[facing][0]
+        # self.current_pose.pose.orientation.z = reset_coords[facing][1]
+        # print(self.current_pose)
+        # self._robot_publisher.publish(self.current_pose)
+        # r.sleep()
+        # for i in range(5):
+        #     self.current_pose.pose.orientation.w += howToMOve[facing][turn][0]
+        #     self.current_pose.pose.orientation.z += howToMOve[facing][turn][1]
+        #     self._robot_publisher.publish(self.current_pose)
+        #
+        #     r.sleep()
+
+
+
+        # set_vel.linear.x = 0
+        # set_vel.angular.z = toTurn[direction]
+        # times = 0
+        # #
+        # r.sleep()
+        # r.sleep()
+        # # self.current_pose.pose.orientation.w = 0
+        # # self.current_pose.pose.orientation.z = -1
+        # r.sleep()
+        # print(f"facing: {self._facing}")
+        # # for i in range(5):
+        #     ######
+        #     # self.current_pose.pose.orientation.w += howToMOve[self._facing][direction][0]
+        #     # self.current_pose.pose.orientation.z += howToMOve[self._facing][direction][1]
+        #     #####
+        #     print(f"w:{self.current_pose.pose.orientation.w} z:{self.current_pose.pose.orientation.z}")
+        #     # self._mover.publish(set_vel)
+        #     r.sleep()
+        #     #####
+        #     # self._robot_publisher.publish(self.current_pose)
+        #     #####
+        #     # self.marker[0].id += 1
+        #     # self.mark_pub.publish(self.marker)# // we publish the same message many times because otherwise robot will stop
+
+
+
+        # self.current_pose.pose.orientation.w = 1
+        # self.current_pose.pose.orientation.z = 100
+        # self._robot_publisher.publish(self.current_pose)
+
+        # set_vel.angular.z = 0
+        # self._mover.publish(set_vel)
 
     def forward(self):
         set_vel = Twist()
-        r = rospy.Rate(5)
+        r = rospy.Rate(20)
         speed = 0.5
         set_vel.linear.x = 0.5
         """     

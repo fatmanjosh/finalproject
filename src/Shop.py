@@ -192,7 +192,9 @@ class Shop:
 
     def generate_box_states(self, boxes):
         # randomly allocate boxes to states along aisles in the map
-        possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
+        # possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
+        possible_box_locations = [27]
+
         box_states = {}
         for box in boxes:
             selected_state = random.choice(possible_box_locations)  # pick random state from list
@@ -279,7 +281,6 @@ class Shop:
     def clear_box_rewards(self, state):
         # used to set reward of a box state to -1 once it has been visited
         self.rewards.update({state : -1})
-        self.policy_iteration()
 
     def policy_iteration(self):
         # Initialize Markov Decision Process model
