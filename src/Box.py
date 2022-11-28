@@ -21,7 +21,7 @@ class Box:
         return (ingredient in self._available_ingredients.keys()  # if ingredient exists in box (0+ items)
                 and self._available_ingredients[ingredient] > 0)  # and is in stock (1+ items) return True
 
-    def can_put_ingredient(self, ingredient):
+    def valid_ingredient(self, ingredient):
         return ingredient in self._available_ingredients.keys()  # if ingredient is one of the possible ingredients in this box return True
 
     def retrieve_ingredient(self, ingredient):  # remove ingredient from box
@@ -31,7 +31,7 @@ class Box:
         return -1  # if ingredient is out of stock/ not in this box then return -1
 
     def add_ingredient(self, ingredient):  # add ingredient to box
-        if self.can_put_ingredient(ingredient):  # if we can put the ingredient in the box
+        if self.valid_ingredient(ingredient):  # if we can put the ingredient in the box
             self._available_ingredients[ingredient] += 1  # increment item quantity by one
         else:
             # if ingredient cannot be added, don't do anything
@@ -47,7 +47,7 @@ class Box:
         return self._available_ingredients
 
     def __str__(self):
-        return self._name + " box"
+        return self._name + ""
 
 # shop contains boxes,
 # boxes contain ingredients
