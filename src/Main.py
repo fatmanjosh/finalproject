@@ -18,7 +18,7 @@ def main():
     # boxes.append(Box("Oil", {"sunflower": 2, "olive": 3, "vegetable": 1, "avocado": 0}))
     # boxes.append(Box("Baking", {"flour": 4, "eggs": 2, "yeast": 1}))
     # boxes.append(Box("Nuts", {"almonds": 2, "cashews": 1, "peanuts": 4}))
-    # boxes.append(Box("Pasta", {"spaghetti": 3, "penne": 2, "lasagne": 1}))
+    boxes.append(Box("Pasta", {"spaghetti": 3, "penne": 2, "lasagne": 1}))
     boxes.append(Box("Fish", {"salmon": 1, "sea bass": 2}))
     # boxes.append(Box("Vegetables", {"carrots": 2, "cucumber": 1, "potato": 9}))
     # boxes.append(Box("Fruit", {"banana": 4, "apple": 5, "strawberry": 2}))
@@ -29,7 +29,7 @@ def main():
 
     # create a robot and pass in ingredients and replacements provided by customer
     # TODO: update to make use of Customer class rather than being hard-coded
-    goal_ingredients = ["salmon"]
+    goal_ingredients = ["salmon", "penne"]
     replacements = [["milk", "almond milk", "oat milk"], ["cashews", "almonds"], ["oat milk", "almond milk"]]
     myRobot = Robot(goal_ingredients, replacements)
 
