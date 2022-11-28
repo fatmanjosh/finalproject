@@ -28,7 +28,7 @@ def main():
 
     # create a robot and pass in ingredients and replacements provided by customer
     # TODO: update to make use of Customer class rather than being hard-coded
-    goal_ingredients = ["milk", "cashews", "paprika", "oat milk", "basmati"]
+    goal_ingredients = ["milk", "cashews", "paprika", "oat milk", "basmati", "apple", "salmon"]
     replacements = [["milk", "almond milk", "oat milk"], ["cashews", "almonds"], ["oat milk", "almond milk"]]
     myRobot = Robot(goal_ingredients, replacements)
 
@@ -44,9 +44,20 @@ def main():
     shop.set_boxes_to_visit(goal_ingredients, boxes)
     print(f"boxes to visit: {shop.boxes_to_visit} \n")
 
-    while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions):  # end if a terminal state is reached
+    print("hohoho")
+    i = 1
+    shop.publish_people()
+    shop.publish_boxes()
+    while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions):  # until a terminal state is reached
+        if(i == 1):
+            print("change\n\n\n\n")
+            shop.heatmap.stateUncertenty(shop.NUM_OF_PEOPLE)
+            i = 0
+            shop.policy_iteration()
+            shop.publish_people()
+        # myRobot.markers()
         myRobot.send_robot_location(map.states()[myRobot.get_location()])  # send robot location to rviz publisher
-
+        
         if myRobot.check_if_at_box(shop.boxes_to_visit.keys()):  # if the robot is at one of the required boxes
 
             # TODO: robot actions when it reaches a box
@@ -60,6 +71,7 @@ def main():
             shop.print_boxes_to_visit()
             if len(shop.boxes_to_visit) == 0:  # if all boxes have been visited then update policy iteration to return to state 8
                 shop.set_path_to_customer()
+        i +=1
 
         if myRobot.get_location() == "s8":  # if robot is back in state 8 with the customer, end loop
             print("robot now back at customer")

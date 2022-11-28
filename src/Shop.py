@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 import random
 import rospy
-import map, transitions, heatmap
+from heatmap import heatmap
+import map, transitions
+from sensor_msgs.msg import PointCloud
+from geometry_msgs.msg import PoseArray, Pose, Point
+
 
 class Shop:
     def __init__(self, boxes):
@@ -33,22 +37,117 @@ class Shop:
 
         self.box_states = self.generate_box_states(boxes)
         self.boxes_to_visit = {}
+        
+        self.NUM_OF_PEOPLE = 50
+        self.heatmap = heatmap(self.NUM_OF_PEOPLE, self.box_states)  # TODO: should this use boxes_to_visit rather than all boxes across map?
+        self.policy_pub = rospy.Publisher("/policy", PoseArray, queue_size = 100)
+
         self.pi_transitions = {}
         self.pi_values = {}
         self.states = map.states()
         self.possible_transitions = map.possible_transitions()
         self.actions = map.actions()
-        self.people = heatmap.heatmap.stateUncertenty(0)
+        self.people = self.heatmap.stateUncertenty(0)
         self.transitions = transitions.transitions(self.people)
 
-        # should these only be done after robot is given a list of items to pick up?
+        # should these only be done after robot has been given a list of items to pick up?
         # seems pointless doing it when Shop is initialised, and then again when the robot has a list of items
         self.rewards = self.generate_rewards()
         self.policy_iteration()
-        self.people = heatmap.heatmap.stateUncertenty(100)
+        self.people = self.heatmap.stateUncertenty(self.NUM_OF_PEOPLE)
         self.transitions = transitions.transitions(self.people)
         print(f"\n{sorted(self.people)}")
         self.policy_iteration()
+
+        self.point_pub = rospy.Publisher("/pcloud", PointCloud, queue_size = 100)
+        self.box_pub = rospy.Publisher("/boxes", PointCloud, queue_size = 100)
+
+
+        self.publish_people()
+
+    def show_policy(self):
+        arrows = []
+        for state, policy in self.pi_transitions.items():
+            arrow = Pose()
+
+            # print(policy)
+
+            if(policy == "TERMINAL"):
+                continue
+            elif (policy == "RIGHT"):
+                arrow.orientation.w = -1
+                arrow.orientation.z = 0
+            elif (policy == "LEFT"):
+                arrow.orientation.w = 0
+                arrow.orientation.z = 1
+            elif (policy == "UP"):
+                arrow.orientation.w = -1
+                arrow.orientation.z = -1
+            elif(policy == "DOWN"):
+                arrow.orientation.w = 1
+                arrow.orientation.z = -1
+
+
+            arrow.position.x = map.states()[state][0] * 7 + 4
+            arrow.position.y = map.states()[state][1] * 7 + 4
+
+            arrows.append(arrow)
+            # print(arrows)
+
+        total = PoseArray()
+        total.header.frame_id = "map"
+        total.poses= arrows
+        self.policy_pub.publish(total)
+        print("published")
+
+
+
+    def publish_people(self):
+        point_array = PointCloud()
+        people = sorted(self.people)
+        for i in range(len(people)):
+            x, y = map.states()[f"s{people[i]}"]
+            point = Point()
+            point.x = random.gauss(x * 7 + 4, 0.2)
+
+            point.y = random.gauss(y * 7 + 4, 0.2)
+
+
+            # point.position.x = x * 7 + 4
+            # point.position.y = y * 7 + 4
+            point_array.points.append(point)
+            point_array.header.frame_id = "map"
+        r = rospy.Rate(5)
+        # self.point_pub.publish(point_array)
+        # r.sleep()
+        # print("point")
+
+        r.sleep()
+        self.point_pub.publish(point_array)
+        r.sleep()
+
+    def publish_boxes(self):
+        point_array = PointCloud()
+        for state in self.box_states.keys():  # TODO: is this meant to show all boxes or only boxes robot is going to? if the latter then may need to be edited
+            point = Point()
+            x, y = map.states()[state]
+            point.x = random.gauss(x * 7 + 4, 0.2)
+
+            point.y = random.gauss(y * 7 + 4, 0.2)
+
+            # point.position.x = x * 7 + 4
+            # point.position.y = y * 7 + 4
+            point_array.points.append(point)
+            point_array.header.frame_id = "map"
+        r = rospy.Rate(5)
+        # self.point_pub.publish(point_array)
+        # r.sleep()
+        # print("point")
+
+        r.sleep()
+        self.box_pub.publish(point_array)
+        r.sleep()
+
 
     def get_box_states(self):
         return self.box_states
@@ -64,6 +163,13 @@ class Shop:
             print(f"{selected_state} : {box}")
 
         return box_states
+
+    def update_box_states(self, state):
+        # removes the box in given state and sets its reward to -1
+        # TODO update to use boxes to visit format
+        self.box_states.pop(state)
+        self.publish_boxes()
+
 
     def print_box_states(self):
         # print the locations of all boxes
@@ -82,8 +188,6 @@ class Shop:
                     break
 
         self.add_new_box_rewards(self.boxes_to_visit.keys())  # set box rewards to +100
-
-        # return self.boxes_to_visit
 
     def update_boxes_to_visit(self, state):
         # removes the box in given state and sets its reward to -1
@@ -115,14 +219,14 @@ class Shop:
         # print(rewards)
         # adding specific rewards for specific states
         # rewards.update({"s0": 100})
-        rewards.update({"s6": -100})
+        # rewards.update({"s6": -100})
 
         return rewards
 
     def set_path_to_customer(self):
         # used to set reward of s8 to 100 and return to customer once all boxes have been visited
         self.rewards.update({"s8" : 100})
-        print("\n\nGoing back to customer\n\n")
+        print("\n\nReturning to customer\n\n")
         self.policy_iteration()
 
     def add_new_box_rewards(self, list_of_states):
@@ -210,7 +314,10 @@ class Shop:
             # print(i)
 
         # print(V)
-        # print(pi)
+        # print(f"policy{}")
+        # print(f"transitions{probs}")
         self.pi_values = V
         self.pi_transitions = pi
+
+        self.show_policy()
 

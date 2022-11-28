@@ -7,11 +7,14 @@ from geometry_msgs.msg import Twist, Point, PoseStamped, Pose
 from math import atan2, pi
 from nav_msgs.msg import Odometry
 
+
 from geometry_msgs.msg import Quaternion
+from visualization_msgs.msg import MarkerArray, Marker
 
 
 class Robot:
     def __init__(self, goal_ingredients, replacements):
+
         self._mover = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
         self._robot_publisher = rospy.Publisher('/robot_location', PoseStamped, queue_size=10)
         # self._listener = rospy.Subscriber('/amcl_pose', PoseWithCovarianceStamped, self.newOdom)
@@ -22,6 +25,10 @@ class Robot:
         self._replacements = self.update_food_dictionary(replacements)
         self._facing = "RIGHT"
         self._location = "s8"
+        self.current_pose = PoseStamped()
+
+        self.mark_pub = rospy.Publisher('/marker', Marker, queue_size=10)
+
 
         self.current_pose = PoseStamped()
 
@@ -30,11 +37,31 @@ class Robot:
     def get_location(self):
         return self._location
 
+    def markers(self):
+        marker = Marker()
+        # marker.pose = self.current_pose.pose
+        marker.header.frame_id = "/map"
+        marker.id = 0
+        marker.pose.position.x = 10
+        marker.pose.position.y = 10
+
+        marker.type = marker.CYLINDER
+        marker.action = 2
+        marker.color.r = 1
+        marker.color.g = 1
+        marker.color.b = 0.0
+        marker.color.a = 1
+        marker.scale.x = 10
+        marker.scale.y = 10
+        marker.scale.z = 100
+        marker.frame_locked = True
+        marker.ns = "Goal"
+
+        self.mark_pub.publish(marker)
+
     def check_if_at_box(self, box_states):
         # returns True if robot is currently in state containing a box
-        if self._location in box_states:
-            return True
-        return False
+        return self._location in box_states
 
     def move_using_policy_iteration(self, states_dict, policy_iteration_transitions):
         # used to move robot in the direction defined by policy iteration
@@ -90,19 +117,46 @@ class Robot:
         # used to turn in the given direction
         set_vel = Twist()
 
-        dict = {"RIGHT": -2.5, "LEFT": 2.5}
+        toTurn = {"RIGHT": -2.5, "LEFT": 2.5}
+        current_direction = {"LEFT": (-0.2, 0), "RIGHT": (0.2, 0), "UP": (0, 0.2), "DOWN": (0, -0.2)}
+
+        howToMOve = {"LEFT" : {"RIGHT" : (-0.2, -0.4, "UP"), "LEFT" : (0.2, -0.4, "DOWN")},
+                     "RIGHT": {"RIGHT" : (0.4, -0.2, "DOWN"), "LEFT" : (0, -0.2, "UP")},
+                     "UP"   : {"RIGHT" : (0, 0.2, "RIGHT"),   "LEFT" : (0.2, 0.4, "LEFT")},
+                     "DOWN" : {"RIGHT" : (-0.2, -0.4, "LEFT"),"LEFT" : (-0.4, 0.2, "RIGHT")}
+                     }
+
+        # if (self._facing == "RIGHT"):
+        #     self.current_pose.pose.orientation.w = -1
+        #     self.current_pose.pose.orientation.z = 0
+        # elif (self._facing == "LEFT"):
+        #     self.current_pose.pose.orientation.w = 0
+        #     self.current_pose.pose.orientation.z = 1
+        # elif (self._facing == "UP"):
+        #     self.current_pose.pose.orientation.w = -1
+        #     self.current_pose.pose.orientation.z = -1
+        # else:
+        #     self.current_pose.pose.orientation.w = 1
+        #     self.current_pose.pose.orientation.z = -1
 
         # for x in range(2):
         set_vel.linear.x = 0
-        set_vel.angular.z = dict[direction]
+        set_vel.angular.z = toTurn[direction]
         r = rospy.Rate(5)
         times = 0
         #
         r.sleep()
         r.sleep()
         for i in range(5):
-            self._mover.publish(set_vel)  # // we publish the same message many times because otherwise robot will stop
+            self.current_pose.pose.orientation.w += howToMOve[self._facing][direction][0]
+            self.current_pose.pose.orientation.z += howToMOve[self._facing][direction][1]
+            # print(f"w:{self.current_pose.pose.orientation.w} z:{self.current_pose.pose.orientation.z}")
+            self._mover.publish(set_vel)
             r.sleep()
+            self._robot_publisher.publish(self.current_pose)
+            # self.marker[0].id += 1
+            # self.mark_pub.publish(self.marker)# // we publish the same message many times because otherwise robot will stop
+        self._facing = howToMOve[self._facing][direction][2]
         set_vel.angular.z = 0
         self._mover.publish(set_vel)
 
@@ -127,10 +181,15 @@ class Robot:
         for i in range(35):
             self._mover.publish(set_vel)  # // we publish the same message many times because otherwise robot will stop
             r.sleep()
+            self.move_robot_pose_forward()
         set_vel.linear.x = 0
         self._mover.publish(set_vel)
 
-        # r.sleep()
+    def move_robot_pose_forward(self):
+        dict = {"LEFT" : (-0.2, 0), "RIGHT" : (0.2, 0),"UP" : (0, 0.2),"DOWN" : (0, -0.2)}
+        self.current_pose.pose.position.x += dict[self._facing][0]
+        self.current_pose.pose.position.y += dict[self._facing][1]
+        self._robot_publisher.publish(self.current_pose)
 
         # set_vel.linear.x = 0.2
         #
@@ -145,7 +204,20 @@ class Robot:
         # #     #     rospy.signal_shutdown("lols")
         #
 
-        # r = rospy.Rate(100)
+    def send_robot_location(self, coord):
+        # print(self._facing)
+        if (self._facing == "RIGHT"):
+            self.current_pose.pose.orientation.w = -1
+            self.current_pose.pose.orientation.z = 0
+        elif (self._facing == "LEFT"):
+            self.current_pose.pose.orientation.w = 0
+            self.current_pose.pose.orientation.z = 1
+        elif (self._facing == "UP"):
+            self.current_pose.pose.orientation.w = -1
+            self.current_pose.pose.orientation.z = -1
+        else:
+            self.current_pose.pose.orientation.w = 1
+            self.current_pose.pose.orientation.z = -1
 
         # while not rospy.is_shutdown():
         #     rospy.wait_for_message("/amcl_pose", PoseWithCovarianceStamped, 100)
@@ -186,7 +258,7 @@ class Robot:
 
     def send_robot_location(self, coord):
         # publish pose so it is visible on rviz
-        print(f"\n{self._facing}")
+        # print(f"\n{self._facing}")
         if (self._facing == "RIGHT"):
             self.current_pose.pose.orientation.w = -1
             self.current_pose.pose.orientation.z = 0
@@ -200,11 +272,11 @@ class Robot:
             self.current_pose.pose.orientation.w = 1
             self.current_pose.pose.orientation.z = -1
 
-        print(f"orientation{self.current_pose.pose.orientation}")
+        # print(f"orientation{self.current_pose.pose.orientation}")
 
         self.current_pose.pose.position.x = coord[0] * 7 + 4
         self.current_pose.pose.position.y = coord[1] * 7 + 4
-        print(f"x: {coord[0] * 7 + 4} y : {coord[1] * 7 + 4}")
+        # print(f"x: {coord[0] * 7 + 4} y : {coord[1] * 7 + 4}")
         self.current_pose.header.frame_id = "map"
         self._robot_publisher.publish(self.current_pose)
         print("published\n")
@@ -255,6 +327,13 @@ class Robot:
                     self._goal_ingredients[i] = current_ingredient  # replace oos ingredient with current_ingredient
                     break
         return True
+
+    # TODO: figure out what this does lol
+    def check_replacement(self, replacement):
+        if (replacement[0] + 1 == len(replacement[1])):
+            return True
+        else:
+            return False
 
     def pick_up_ingredient(self, ingredient, box):
         # attempts to add pick up ingredient from box and add it to robot inventory

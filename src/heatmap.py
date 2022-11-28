@@ -5,18 +5,24 @@ import random
 
 class heatmap:
     # will not have many people in the store so I'll scrap the vector frequency
-    def __init__(self, nrPeople):
+    def __init__(self, nrPeople, box_locations):
         # initial position of people - I think about 40-60 people is good
         self.people = []
+        self.box_locstions = box_locations
+        self.MAX_PER_STATE = 3
         for _ in range(nrPeople):
             self.people.append(self.newPerson())
 
         self.possible_transitions = map.possible_transitions()
 
+        print("people ", self.people)
+
     def newPerson(self):
         while True:
-            wantedState = randrange(len(map.states())-1)
-            if self.people.count(wantedState) >= 7:
+            wantedState = randrange(len(map.states()) - 1)
+            while(wantedState in self.box_locstions):
+                wantedState = randrange(len(map.states()) - 1)
+            if self.people.count(wantedState) >= self.MAX_PER_STATE:
                 continue
             return wantedState
 
@@ -39,13 +45,13 @@ class heatmap:
 
 
                         if (rn == 'LEFT'):
-                            if(people.count(people[i] - 1) >= 7):
+                            if(people.count(people[i] - 1) >= self.MAX_PER_STATE):
                                 copy_possible_transitions[state].remove(rn)
                                 continue
                             people[i] -=1
                             
                         if(rn == 'RIGHT'):
-                            if(people.count(people[i] + 1) >= 7):
+                            if(people.count(people[i] + 1) >= self.MAX_PER_STATE):
                                 copy_possible_transitions[state].remove(rn)
                                 continue
                             people[i] +=1
@@ -88,11 +94,11 @@ class heatmap:
                 newState = int(''.join(filter(str.isdigit, nextState)))
                 break
 
-        if (self.people.count(newState) >= 7):
+        if (self.people.count(newState) >= self.MAX_PER_STATE):
             return int(''.join(filter(str.isdigit, state)))
         return int(''.join(filter(str.isdigit, nextState)))
 
-    def moveDown(self,state): # return the new state if it doens't already have more then 7
+    def moveDown(self,state): # return the new state if it doens't already have more then self.MAX_PER_STATE
         allStates = map.states()
         x = allStates[state][0]
         y = allStates[state][1] - 1
@@ -101,10 +107,8 @@ class heatmap:
             if(allStates[nextState][0] == x and allStates[nextState][1] == y):
                 newState = int(''.join(filter(str.isdigit, nextState)))
                 break
-        if (self.people.count(newState) >= 7):
+        if (self.people.count(newState) >= self.MAX_PER_STATE):
             return int(''.join(filter(str.isdigit, state)))
 
         return int(''.join(filter(str.isdigit, nextState)))
 
-
-heatmap = heatmap(100)
