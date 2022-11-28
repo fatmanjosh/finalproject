@@ -47,23 +47,27 @@ class Shop:
         self.states = map.states()
         self.possible_transitions = map.possible_transitions()
         self.actions = map.actions()
-        self.people = self.heatmap.stateUncertenty(0)
+        self.people = self.heatmap.stateUncertainty(0)
         self.transitions = transitions.transitions(self.people)
 
         # should these only be done after robot has been given a list of items to pick up?
         # seems pointless doing it when Shop is initialised, and then again when the robot has a list of items
         self.rewards = self.generate_rewards()
         self.policy_iteration()
-        self.people = self.heatmap.stateUncertenty(self.NUM_OF_PEOPLE)
+        self.people = self.set_people(self.NUM_OF_PEOPLE)
         self.transitions = transitions.transitions(self.people)
         print(f"\n{sorted(self.people)}")
         self.policy_iteration()
 
         self.point_pub = rospy.Publisher("/pcloud", PointCloud, queue_size = 100)
         self.box_pub = rospy.Publisher("/boxes", PointCloud, queue_size = 100)
-
+        self.box_to_visit_pub = rospy.Publisher("/boxes_to_visit", PointCloud, queue_size = 100)
+    
 
         self.publish_people()
+        
+    def set_people(self, number_of_people):
+        return self.heatmap.stateUncertainty(1)            
 
     def show_policy(self):
         arrows = []
@@ -104,13 +108,14 @@ class Shop:
 
     def publish_people(self):
         point_array = PointCloud()
-        people = sorted(self.people)
+        # people = sorted(self.people)
+        people = self.people
         for i in range(len(people)):
             x, y = map.states()[f"s{people[i]}"]
             point = Point()
-            point.x = random.gauss(x * 7 + 4, 0.2)
+            point.x = random.gauss(x * 7 + 4, 0.5)
 
-            point.y = random.gauss(y * 7 + 4, 0.2)
+            point.y = random.gauss(y * 7 + 4, 0.5)
 
 
             # point.position.x = x * 7 + 4
@@ -131,9 +136,9 @@ class Shop:
         for state in self.box_states.keys():  # TODO: is this meant to show all boxes or only boxes robot is going to? if the latter then may need to be edited
             point = Point()
             x, y = map.states()[state]
-            point.x = random.gauss(x * 7 + 4, 0.2)
+            point.x = x * 7 + 4
 
-            point.y = random.gauss(y * 7 + 4, 0.2)
+            point.y = y * 7 +4
 
             # point.position.x = x * 7 + 4
             # point.position.y = y * 7 + 4
@@ -147,6 +152,39 @@ class Shop:
         r.sleep()
         self.box_pub.publish(point_array)
         r.sleep()
+        
+    def publish_boxes_to_visit(self):
+        point_array = PointCloud()
+        
+        if len(self.boxes_to_visit.keys()) == 0:
+            point = Point()
+            point.x = 0
+            point.y = 0
+            point.z = 10000
+            point_array.points.append(point)
+
+        
+        for state in self.boxes_to_visit.keys():  # TODO: is this meant to show all boxes or only boxes robot is going to? if the latter then may need to be edited
+            point = Point()
+            x, y = map.states()[state]
+            point.x = x * 7 + 4
+
+            point.y = y * 7 + 4
+
+            # point.position.x = x * 7 + 4
+            # point.position.y = y * 7 + 4
+            point_array.points.append(point)
+        r = rospy.Rate(5)
+        # self.point_pub.publish(point_array)
+        # r.sleep()
+        # print("point")
+        point_array.header.frame_id = "map"
+
+
+        r.sleep()
+        print(point_array)
+        self.box_to_visit_pub.publish(point_array)
+        r.sleep()
 
 
     def get_box_states(self):
@@ -154,7 +192,8 @@ class Shop:
 
     def generate_box_states(self, boxes):
         # randomly allocate boxes to states along aisles in the map
-        possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
+        # possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
+        possible_box_locations = [58]
         box_states = {}
         for box in boxes:
             selected_state = random.choice(possible_box_locations)  # pick random state from list
@@ -193,6 +232,9 @@ class Shop:
         # removes the box in given state and sets its reward to -1
         self.boxes_to_visit.pop(state)
         self.clear_box_rewards(state)
+        self.publish_boxes_to_visit()
+        
+        
 
     def print_boxes_to_visit(self):
         # prints remaining music
@@ -315,7 +357,8 @@ class Shop:
 
         # print(V)
         # print(f"policy{}")
-        # print(f"transitions{probs}")
+        # k = probs["RIGHT"]["s5"]
+        # print(f"transitions{k}")
         self.pi_values = V
         self.pi_transitions = pi
 

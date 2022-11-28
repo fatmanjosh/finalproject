@@ -49,13 +49,13 @@ def transition_states(direction, x, y, people):
                     transition_dict[state][next_state] = 1   # stay where you are
                 else:
                     if calculated == False:
-                        uncertainty = (people.count(int(''.join(filter(str.isdigit, next_state)))) / 3) * 0.25 + 0.2
+                        uncertainty = (people.count(int(''.join(filter(str.isdigit, next_state))))) * 0.25 + 0.2
                         calculated = True
 
                     transition_dict[state][next_state] = uncertainty    # otherwise you have a probability of not moving 0.2
             elif direction in possible_transitions[state] and states[state][0] + x == states[next_state][0] and states[state][1] + y == states[next_state][1]: #if you can go in the direction
                 if calculated == False:
-                    uncertainty = (people.count(int(''.join(filter(str.isdigit, next_state)))) / 3) * 0.25 + 0.2
+                    uncertainty = (people.count(int(''.join(filter(str.isdigit, next_state))))) * 0.25 + 0.2
                     calculated = True
                 transition_dict[state][next_state] = 1 - uncertainty        #and if the state in the direction
             else:                                                       #is the next state then if more then 10 people there can't go there
