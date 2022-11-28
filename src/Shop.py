@@ -192,8 +192,8 @@ class Shop:
 
     def generate_box_states(self, boxes):
         # randomly allocate boxes to states along aisles in the map
-        # possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
-        possible_box_locations = [58]
+        possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
+        # possible_box_locations = [58]
         box_states = {}
         for box in boxes:
             selected_state = random.choice(possible_box_locations)  # pick random state from list
