@@ -6,6 +6,7 @@ import rospy
 from geometry_msgs.msg import Twist, Point, PoseStamped, Pose
 from math import atan2, pi
 from nav_msgs.msg import Odometry
+import random
 
 
 from geometry_msgs.msg import Quaternion
@@ -63,12 +64,44 @@ class Robot:
         # returns True if robot is currently in state containing a box
         return self._location in box_states
 
-    def move_using_policy_iteration(self, states_dict, policy_iteration_transitions):
+    def get_next_possible_states_and_prob(self, state, direction, transitions):
+        state_prob = {}
+        for next_state, prob in transitions[direction][state].items():
+            if prob != 0:
+                state_prob[next_state] = prob
+        return state_prob
+
+
+
+    def move_using_policy_iteration(self, states_dict, policy_iteration_transitions, transitions, people):
         # used to move robot in the direction defined by policy iteration
         # states_dict will need to be passed in from map.states()
         # policy_iteration_transitions will need to be passed in from Shop.get_pi_transitions()
         current_state = self._location
-        direction_to_move = policy_iteration_transitions[current_state]  # returns a direction, e.g. "RIGHT"
+
+        random_number = random.uniform(0, 1)
+
+        stay = 0
+        move = 0
+        state_prob = self.get_next_possible_states_and_prob(current_state, policy_iteration_transitions[current_state], transitions)
+
+        for next_state, prob in state_prob.items():
+
+            if current_state == next_state:
+                stay = prob
+
+        direction_to_move = ""
+
+        if random_number <= stay:
+            return False
+        else:
+            direction_to_move = policy_iteration_transitions[current_state]
+
+
+
+
+
+        # direction_to_move = policy_iteration_transitions[current_state]  # returns a direction, e.g. "RIGHT"
         current_state_coords = states_dict[current_state]  # returns a co-ordinate tuple
         if direction_to_move == "TERMINAL":
             print("terminal state reached")
@@ -181,14 +214,11 @@ class Robot:
         #
         # print(f"currently facing: {self._facing}")
         r = rospy.Rate(10)
-        # r.sleep()
-        # r.sleep()
-        # r.sleep()
+
 
         self.current_pose.pose.orientation.w = reset_coords[self._facing][0]
         self.current_pose.pose.orientation.z = reset_coords[self._facing][1]
-        print(reset_coords[self._facing][0])
-        print(reset_coords[self._facing][1])
+
         self._robot_publisher.publish(self.current_pose)
         for i in range(5):
             self.current_pose.pose.orientation.w += howToMOve[self._facing][direction][0]
@@ -368,7 +398,6 @@ class Robot:
         # print(f"x: {coord[0] * 7 + 4} y : {coord[1] * 7 + 4}")
         self.current_pose.header.frame_id = "map"
         self._robot_publisher.publish(self.current_pose)
-        print("published\n")
 
         # print(current_pose.header)
 
