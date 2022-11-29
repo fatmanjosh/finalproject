@@ -7,6 +7,7 @@ from geometry_msgs.msg import Twist, Point, PoseStamped, Pose
 from math import atan2, pi
 from nav_msgs.msg import Odometry
 
+import Box
 
 from geometry_msgs.msg import Quaternion
 from visualization_msgs.msg import MarkerArray, Marker
@@ -21,19 +22,35 @@ class Robot:
         # rospy.init_node('mover', anonymous=True)
         self._goal_ingredients = goal_ingredients
         self._inventory = []
-        self._out_of_stock = ["cashews", "oat milk"]  # used to monitor oos items as robot finds them - initially empty?
+        self._out_of_stock = ["oat milk", "cashews"]  # used to monitor oos items as robot finds them - initially empty?
+        self._substitutions = {}
+        self._unavailable = []
         self._replacements = self.update_food_dictionary(replacements)
         self._facing = "RIGHT"
         self._location = "s8"
         self.current_pose = PoseStamped()
+        
+        self.current_box = None
 
         self.mark_pub = rospy.Publisher('/marker', Marker, queue_size=10)
 
 
-        self.current_pose = PoseStamped()
+        # self.current_pose = PoseStamped()
 
         # oat milk : almond milk -- mapping oat to almond as an alternative
 
+    def get_inventory(self):
+        return self._inventory
+    
+    def get_out_of_stock(self):
+        return self._out_of_stock
+    
+    def get_substitutions(self):
+        return self._substitutions
+    
+    def get_unavailable(self):
+        return self._unavailable
+    
     def get_location(self):
         return self._location
 
@@ -59,8 +76,15 @@ class Robot:
 
         self.mark_pub.publish(marker)
 
+    def get_box_at_state(self, box_states):
+        # returns the box at the current state
+        for box in box_states:
+            if self._location == box:
+                return box
+
+    
     def check_if_at_box(self, box_states):
-        # returns True if robot is currently in state containing a box
+        # returns True if robot is currently in a state containing a box
         return self._location in box_states
 
     def move_using_policy_iteration(self, states_dict, policy_iteration_transitions):
@@ -86,7 +110,7 @@ class Robot:
 
         # get the state number which has the co-ords - new_state_coords
         new_state = list(states_dict.keys())[list(states_dict.values()).index(new_state_coords)]
-        print(f"new state coords: {new_state_coords} new state: {new_state}")
+        # print(f"new state coords: {new_state_coords} new state: {new_state}")
         self.move_cell(direction_to_move)
         self._location = new_state
         return False
@@ -95,23 +119,28 @@ class Robot:
         # used to move robot in the given direction regardless of current direction it is facing
         all_directions = ["UP", "RIGHT", "DOWN", "LEFT"]  # array that will be used circularly for directions
         current_direction = self._facing
-        print(f"currently facing: {current_direction}, required: {direction_to_move}")
+        # print(f"currently facing: {current_direction}, required: {direction_to_move}")
 
         while current_direction != direction_to_move:  # turn until facing the required direction of movement
             # if required direction is to the right of current direction
             if all_directions.index(direction_to_move) == (all_directions.index(current_direction) + 1) % 4:
-                print("turning right")
+                # print("turning right")
                 self.left_or_right("RIGHT")  # then move to the right
                 # self.send_robot_location()
                 current_direction = all_directions[(all_directions.index(current_direction) + 1) % 4]
             else:  # in all other cases, turn left
-                print("turning left")
+                # print("turning left")
                 self.left_or_right("LEFT")
                 current_direction = all_directions[(all_directions.index(current_direction) - 1) % 4]
 
         self._facing = current_direction  # robot is now facing the correct direction so update self._facing
-        print(f"now moving: {current_direction}")
+        # print(f"now moving: {current_direction}")
         self.forward()
+        
+    def turn(self, pre_coods, post_coords):
+        x = (post_coords[0] - pre_coods[0]) / 5
+        y = (post_coords[1] - pre_coods[1]) / 5
+        return -x, -y    
 
     def left_or_right(self, direction):
         # used to turn in the given direction
@@ -120,11 +149,12 @@ class Robot:
         toTurn = {"RIGHT": -2.5, "LEFT": 2.5}
         current_direction = {"LEFT": (-0.2, 0), "RIGHT": (0.2, 0), "UP": (0, 0.2), "DOWN": (0, -0.2)}
 
-        howToMOve = {"LEFT" : {"RIGHT" : (-0.2, -0.4, "UP"), "LEFT" : (0.2, -0.4, "DOWN")},
-                     "RIGHT": {"RIGHT" : (0.4, -0.2, "DOWN"), "LEFT" : (0, -0.2, "UP")},
-                     "UP"   : {"RIGHT" : (0, 0.2, "RIGHT"),   "LEFT" : (0.2, 0.4, "LEFT")},
-                     "DOWN" : {"RIGHT" : (-0.2, -0.4, "LEFT"),"LEFT" : (-0.4, 0.2, "RIGHT")}
-                     }
+        howToMOve = {"LEFT" : {"RIGHT" : (-0.2, 0, "UP"), "LEFT" : (0.2, 0, "DOWN")},
+                     "RIGHT": {"RIGHT" : (0, 0.2, "DOWN"), "LEFT" : (0, -0.2, "UP")},
+                     "UP"   : {"RIGHT" : (0, 0.2, "RIGHT"),   "LEFT" : (0.2, 0, "LEFT")},
+                     "DOWN" : {"RIGHT" : (0.2, 0, "LEFT"),"LEFT" : (0, -0.2, "RIGHT")}
+                    }
+        reset_coords = {"UP" : (-1, -1), "DOWN" : (-1, 1), "LEFT" : (0, -1), "RIGHT" : (-1, 0)}
 
         # if (self._facing == "RIGHT"):
         #     self.current_pose.pose.orientation.w = -1
@@ -139,30 +169,32 @@ class Robot:
         #     self.current_pose.pose.orientation.w = 1
         #     self.current_pose.pose.orientation.z = -1
 
-        # for x in range(2):
-        set_vel.linear.x = 0
-        set_vel.angular.z = toTurn[direction]
-        r = rospy.Rate(5)
-        times = 0
+        # for x in range(2):        
         #
-        r.sleep()
-        r.sleep()
+        # print(f"currently facing: {self._facing}")
+        r = rospy.Rate(10)
+        # r.sleep()
+        # r.sleep()
+        # r.sleep()
+
+        self.current_pose.pose.orientation.w = reset_coords[self._facing][0]
+        self.current_pose.pose.orientation.z = reset_coords[self._facing][1]
+        # print(reset_coords[self._facing][0])
+        # print(reset_coords[self._facing][1])
+        self._robot_publisher.publish(self.current_pose)
+        
         for i in range(5):
             self.current_pose.pose.orientation.w += howToMOve[self._facing][direction][0]
             self.current_pose.pose.orientation.z += howToMOve[self._facing][direction][1]
             # print(f"w:{self.current_pose.pose.orientation.w} z:{self.current_pose.pose.orientation.z}")
-            self._mover.publish(set_vel)
-            r.sleep()
             self._robot_publisher.publish(self.current_pose)
-            # self.marker[0].id += 1
-            # self.mark_pub.publish(self.marker)# // we publish the same message many times because otherwise robot will stop
+            r.sleep()
         self._facing = howToMOve[self._facing][direction][2]
-        set_vel.angular.z = 0
-        self._mover.publish(set_vel)
+
 
     def forward(self):
         set_vel = Twist()
-        r = rospy.Rate(5)
+        r = rospy.Rate(20)
         speed = 0.5
         set_vel.linear.x = 0.5
         """     
@@ -279,13 +311,16 @@ class Robot:
         # print(f"x: {coord[0] * 7 + 4} y : {coord[1] * 7 + 4}")
         self.current_pose.header.frame_id = "map"
         self._robot_publisher.publish(self.current_pose)
-        print("published\n")
+        # print("published\n")
 
         # print(current_pose.header)
 
     # ---------------------------------------------------------
     # below functions are based on robot picking up ingredients
 
+    def get_goal_ingredients(self):
+        return self._goal_ingredients
+    
     def update_food_dictionary(self, replacements):
         # takes an array of ingredients and their possible replacements and reformats this into a dictionary
         """
@@ -297,8 +332,10 @@ class Robot:
         for i in range(number_of_items):  # for each individual array in replacements array, e.g. ["milk", "almond milk", "oat milk"]
             for j in range(1, len(replacements[i])):  # for each item in individual array starting at index 1, e.g. "almond milk"
                 result.update({replacements[i][j-1] : replacements[i][j]})
-        print(f"replacements: {result}")
+        # print(f"replacements: {result}")
         return result
+
+
 
     def check_for_oos_ingredients(self):
         # updates the entire array of goal ingredients, finding suitable replacements for any which are in the robot's oos list
@@ -313,41 +350,76 @@ class Robot:
 
     def check_for_replacements(self, ingredient):
         # as above but for a single ingredient
+        # returns True if a replacement is successfully found or returns False if there are no replacements
         current_ingredient = ingredient
         if current_ingredient in self._goal_ingredients:
             # find a replacement
             while current_ingredient in self._out_of_stock:  # if ingredient is oos try and swap it for a replacement
                 if current_ingredient not in self._replacements.keys():  # if ingredient does not have a replacement return False
+                    self._unavailable.append(current_ingredient)
                     return False
                 current_ingredient = self._replacements[current_ingredient]  # otherwise, test again with ingredient's given replacement
-
+                
             # update ingredient in _goal_ingredients
             for i in range(len(self._goal_ingredients)):  # iterate through _goal_ingredients
                 if ingredient == self._goal_ingredients[i]:  # until original oos ingredient is found
                     self._goal_ingredients[i] = current_ingredient  # replace oos ingredient with current_ingredient
                     break
+            # self._substitutions.update({ingredient : current_ingredient})
+            
+            if ingredient in self._substitutions.values():  # if the ingredient is already a replacement
+                ingredient = list(self._substitutions.keys())[list(self._substitutions.values()).index(ingredient)]  # get the parent ingredient that maps to this replacement
+            self._substitutions.update({ingredient : current_ingredient})  # replace this replacement with the new replacement
         return True
 
-    # TODO: figure out what this does lol
-    def check_replacement(self, replacement):
-        if (replacement[0] + 1 == len(replacement[1])):
-            return True
-        else:
-            return False
+        
+    def pick_up_all_required_ingredients_from_box(self):
+        # attempts to pick up all ingredients in goal ingredients that belong to this box
+        
+        # for ingredient in goal_ingredients:
+        #     self.pick_up_ingredient(ingredient)
+        print(f"goal ingredients : {str(self._goal_ingredients)} : {str(len(self._goal_ingredients))}")
+        goal_ingredients = self._goal_ingredients    
+        
+        for _ in range(3):  # repeat 3 times in case replacements are in the same box
+            for i in range (len(goal_ingredients)-1, -1, -1):
+                # print(f"index {i}: attempting to pick up {goal_ingredients[i]} ")
+                self.pick_up_ingredient(goal_ingredients[i])
+                # print(f"index {i}: has this changed? --> {goal_ingredients[i]} \n")
 
-    def pick_up_ingredient(self, ingredient, box):
-        # attempts to add pick up ingredient from box and add it to robot inventory
-        if not box.valid_ingredient(ingredient):  # if ingredient does not exist in this box
-            print("Ingredient cannot be found in this box. \n")
-            return False
-        elif not box.check_for_ingredient(ingredient):  # if ingredient does exist in this box, but it is oos
-            self._out_of_stock.append(ingredient)  # add ingredient to robot's list of oos ingredients
-            if not self.check_for_replacements(ingredient):  # if ingredient does not have a replacement, return False
-                print("Ingredient is out of stock and customer has not requested any replacements")
-                return False
-        else:  # if ingredient is in stock
-            self._inventory.append(box.retrieve_ingredient(ingredient))  # add ingredient to inventory and remove it from box
 
+
+    def pick_up_ingredient(self, ingredient):
+        # attempts to pick up a single ingredient from box and add it to the robot inventory
+        
+        # if not self.current_box.valid_ingredient(ingredient):  # if ingredient does not exist in this box
+        #     print(f"Ingredient {ingredient} cannot be found in this box.")
+        #     return False
+        if self.current_box.valid_ingredient(ingredient):  # if ingredient exists in this box
+            if not self.current_box.check_for_ingredient(ingredient):  # if ingredient does exist in this box, but it is oos
+                self._out_of_stock.append(ingredient)  # add ingredient to robot's list of oos ingredients
+                if not self.check_for_replacements(ingredient):  # if ingredient does not have a replacement, return False
+                    print(f"====Ingredient '{ingredient}' is out of stock and customer has not requested any replacements")
+                    self._goal_ingredients.remove(ingredient)  # remove ingredient from goal_ingredients
+                    # return False
+                
+                else:
+                    print(f"====Ingredient '{ingredient}' is out of stock but customer has requested a replacement")
+                
+                # return False  # returns False if item was not successfully picked up
+            
+                # TODO: add case if ingredient is oos but does have a possible replacement
+                # it is automatically added to goal_ingredients by check_for_replacements function
+                # but if replacement is in this box then add it to inventory here?
+                        
+            else:  # if ingredient is in stock
+                self._inventory.append(self.current_box.retrieve_ingredient(ingredient))  # add ingredient to inventory and remove it from box
+                self._goal_ingredients.remove(ingredient)  # remove ingredient from goal_ingredients
+                print(f"Ingredient '{ingredient}' added to inventory")
+        
+        # else:  # if ingredient does not exist in this box
+        #     print(f"Ingredient {ingredient} cannot be found in this box.")
+        
     def report_impossible_task(self):
         print("Cannot be done")
 

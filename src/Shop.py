@@ -40,8 +40,8 @@ class Shop:
         
         self.NUM_OF_PEOPLE = 50
         self.heatmap = heatmap(self.NUM_OF_PEOPLE, self.box_states)  # TODO: should this use boxes_to_visit rather than all boxes across map?
-        self.policy_pub = rospy.Publisher("/policy", PoseArray, queue_size = 100)
 
+        self.policy_pub = rospy.Publisher("/policy", PoseArray, queue_size = 100)
         self.pi_transitions = {}
         self.pi_values = {}
         self.states = map.states()
@@ -53,7 +53,7 @@ class Shop:
         # should these only be done after robot has been given a list of items to pick up?
         # seems pointless doing it when Shop is initialised, and then again when the robot has a list of items
         self.rewards = self.generate_rewards()
-        self.policy_iteration()
+        # self.policy_iteration()
         self.people = self.set_people(self.NUM_OF_PEOPLE)
         self.transitions = transitions.transitions(self.people)
         print(f"\n{sorted(self.people)}")
@@ -102,7 +102,7 @@ class Shop:
         total.header.frame_id = "map"
         total.poses= arrows
         self.policy_pub.publish(total)
-        print("published")
+        # print("published")
 
 
 
@@ -193,7 +193,6 @@ class Shop:
     def generate_box_states(self, boxes):
         # randomly allocate boxes to states along aisles in the map
         possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
-        # possible_box_locations = [58]
         box_states = {}
         for box in boxes:
             selected_state = random.choice(possible_box_locations)  # pick random state from list
@@ -229,13 +228,11 @@ class Shop:
         self.add_new_box_rewards(self.boxes_to_visit.keys())  # set box rewards to +100
 
     def update_boxes_to_visit(self, state):
-        # removes the box in given state and sets its reward to -1
+        # removes the box in given state and sets its reward to -1 before publishing the remaining boxes
         self.boxes_to_visit.pop(state)
         self.clear_box_rewards(state)
-        self.publish_boxes_to_visit()
+        self.publish_boxes_to_visit()      
         
-        
-
     def print_boxes_to_visit(self):
         # prints remaining music
         print(f"\nremaining boxes: {self.boxes_to_visit} \n")
@@ -257,7 +254,7 @@ class Shop:
                     #     rewards[state] = -1
                     rewards[state] = -1
                     i += 1
-
+        rewards.update({"s0": -100})  # program ends when robot moves into s8 so set this to -100 whilst collecting items
         # print(rewards)
         # adding specific rewards for specific states
         # rewards.update({"s0": 100})

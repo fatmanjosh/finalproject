@@ -1,10 +1,5 @@
 class Box:
-
-    # original form:
-    # Box("Dairy", ["milk", "oat milk", "almond milk"], ["milk", "milk", "milk" "oat milk", "almond milk"]))
-
-    # new form:
-    # Box("Dairy", {"milk": 3, "oat milk": 1, "almond milk": 1})
+    # form: Box("Dairy", {"milk": 3, "oat milk": 1, "almond milk": 1})
     # all possible box ingredients are included in dictionary, but OOS items will have quantity 0
 
     def __init__(self, name, available_ingredients):
