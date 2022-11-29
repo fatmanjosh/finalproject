@@ -6,6 +6,7 @@ import rospy
 from geometry_msgs.msg import Twist, Point, PoseStamped, Pose
 from math import atan2, pi
 from nav_msgs.msg import Odometry
+import random
 
 import Box
 
@@ -87,12 +88,41 @@ class Robot:
         # returns True if robot is currently in a state containing a box
         return self._location in box_states
 
-    def move_using_policy_iteration(self, states_dict, policy_iteration_transitions):
+    def get_next_possible_states_and_prob(self, state, direction, transitions):
+        state_prob = {}
+        for next_state, prob in transitions[direction][state].items():
+            if prob != 0:
+                state_prob[next_state] = prob
+        return state_prob
+
+
+
+    def move_using_policy_iteration(self, states_dict, policy_iteration_transitions, transitions, people):
         # used to move robot in the direction defined by policy iteration
         # states_dict will need to be passed in from map.states()
         # policy_iteration_transitions will need to be passed in from Shop.get_pi_transitions()
         current_state = self._location
-        direction_to_move = policy_iteration_transitions[current_state]  # returns a direction, e.g. "RIGHT"
+
+        random_number = random.uniform(0, 1)
+
+        stay = 0
+        move = 0
+        state_prob = self.get_next_possible_states_and_prob(current_state, policy_iteration_transitions[current_state], transitions)
+
+        for next_state, prob in state_prob.items():
+
+            if current_state == next_state:
+                stay = prob
+
+        direction_to_move = ""
+
+        if random_number <= stay:
+            return False
+        else:
+            direction_to_move = policy_iteration_transitions[current_state]
+
+
+        # direction_to_move = policy_iteration_transitions[current_state]  # returns a direction, e.g. "RIGHT"
         current_state_coords = states_dict[current_state]  # returns a co-ordinate tuple
         if direction_to_move == "TERMINAL":
             print("terminal state reached")
@@ -142,6 +172,15 @@ class Robot:
         y = (post_coords[1] - pre_coods[1]) / 5
         return -x, -y    
 
+
+    def turn(self, pre_coods, post_coords):
+        x = (post_coords[0] - pre_coods[0]) / 5
+        y = (post_coords[1] - pre_coods[1]) / 5
+        return -x, -y
+
+
+
+
     def left_or_right(self, direction):
         # used to turn in the given direction
         set_vel = Twist()
@@ -157,40 +196,113 @@ class Robot:
         reset_coords = {"UP" : (-1, -1), "DOWN" : (-1, 1), "LEFT" : (0, -1), "RIGHT" : (-1, 0)}
 
         # if (self._facing == "RIGHT"):
-        #     self.current_pose.pose.orientation.w = -1
-        #     self.current_pose.pose.orientation.z = 0
+        #     self.current_pose.pose.orientation.w = -1 1
+        #     self.current_pose.pose.orientation.z =  0 0
         # elif (self._facing == "LEFT"):
-        #     self.current_pose.pose.orientation.w = 0
-        #     self.current_pose.pose.orientation.z = 1
+        #     self.current_pose.pose.orientation.w = 0  0       left to up 0 -1 to 1 1 anti
+        #     self.current_pose.pose.orientation.z = 1 -1       left to up 0 -1 to -1 -1 clockwise
         # elif (self._facing == "UP"):
-        #     self.current_pose.pose.orientation.w = -1
-        #     self.current_pose.pose.orientation.z = -1
+        #     self.current_pose.pose.orientation.w = -1 1     right to up go up to 1 1 go clockwise
+        #     self.current_pose.pose.orientation.z = -1 1     right to up to -1 -1 go anti clockwise
         # else:
-        #     self.current_pose.pose.orientation.w = 1
-        #     self.current_pose.pose.orientation.z = -1
+        #     self.current_pose.pose.orientation.w =  1  -1
+        #     self.current_pose.pose.orientation.z = -1   1
 
-        # for x in range(2):        
+        # for x in range(2):
+
+
+        ##left to up 0 -1 to 1 1 anti
+        ##left to up 0 -1 to -1-1 clockwise YES
+
+        ##left to down 0 -1 to 1 -1 YES
+
+        ##right to up -1 0 go up to 1 1 go clockwise
+        ##right to up to -1 0 -1 -1 go anti clockwise YES
+
+        ##right to down -1 0 to 1 -1 ANTI NO
+        ##right to down -1 0 to -1 1 CW YES
+
+        ##up to left -1 -1 to 0 1 CW NO
+        ##up to left -1 -1 to 0 -1 ACW YES
+
+        ##up to right -1 -1 to -1 0 CW YES
+
+        ##down to right -1 1 to -1 0 ANTI YES
+
+        ##down to left -1 1 to 0 -1 ANTI NO
+        ##down to left -1 1 to 0 1  CW YES
+
+
+        # print(self.turn((-1, 1), (0, 1)))
+        #
+        #
         #
         # print(f"currently facing: {self._facing}")
         r = rospy.Rate(10)
-        # r.sleep()
-        # r.sleep()
-        # r.sleep()
+
 
         self.current_pose.pose.orientation.w = reset_coords[self._facing][0]
         self.current_pose.pose.orientation.z = reset_coords[self._facing][1]
-        # print(reset_coords[self._facing][0])
-        # print(reset_coords[self._facing][1])
+
         self._robot_publisher.publish(self.current_pose)
-        
         for i in range(5):
             self.current_pose.pose.orientation.w += howToMOve[self._facing][direction][0]
             self.current_pose.pose.orientation.z += howToMOve[self._facing][direction][1]
-            # print(f"w:{self.current_pose.pose.orientation.w} z:{self.current_pose.pose.orientation.z}")
             self._robot_publisher.publish(self.current_pose)
             r.sleep()
         self._facing = howToMOve[self._facing][direction][2]
+        #
+        #
+        #
+        # facing = "DOWN"
+        # turn = "LEFT"
 
+        # self.current_pose.pose.orientation.w = reset_coords[facing][0]
+        # self.current_pose.pose.orientation.z = reset_coords[facing][1]
+        # print(self.current_pose)
+        # self._robot_publisher.publish(self.current_pose)
+        # r.sleep()
+        # for i in range(5):
+        #     self.current_pose.pose.orientation.w += howToMOve[facing][turn][0]
+        #     self.current_pose.pose.orientation.z += howToMOve[facing][turn][1]
+        #     self._robot_publisher.publish(self.current_pose)
+        #
+        #     r.sleep()
+
+
+
+        # set_vel.linear.x = 0
+        # set_vel.angular.z = toTurn[direction]
+        # times = 0
+        # #
+        # r.sleep()
+        # r.sleep()
+        # # self.current_pose.pose.orientation.w = 0
+        # # self.current_pose.pose.orientation.z = -1
+        # r.sleep()
+        # print(f"facing: {self._facing}")
+        # # for i in range(5):
+        #     ######
+        #     # self.current_pose.pose.orientation.w += howToMOve[self._facing][direction][0]
+        #     # self.current_pose.pose.orientation.z += howToMOve[self._facing][direction][1]
+        #     #####
+        #     print(f"w:{self.current_pose.pose.orientation.w} z:{self.current_pose.pose.orientation.z}")
+        #     # self._mover.publish(set_vel)
+        #     r.sleep()
+        #     #####
+        #     # self._robot_publisher.publish(self.current_pose)
+        #     #####
+        #     # self.marker[0].id += 1
+        #     # self.mark_pub.publish(self.marker)# // we publish the same message many times because otherwise robot will stop
+
+
+
+        # self.current_pose.pose.orientation.w = 1
+        # self.current_pose.pose.orientation.z = 100
+        # self._robot_publisher.publish(self.current_pose)
+
+        # set_vel.angular.z = 0
+        # self._mover.publish(set_vel)
 
     def forward(self):
         set_vel = Twist()
@@ -236,20 +348,21 @@ class Robot:
         # #     #     rospy.signal_shutdown("lols")
         #
 
-    def send_robot_location(self, coord):
-        # print(self._facing)
-        if (self._facing == "RIGHT"):
-            self.current_pose.pose.orientation.w = -1
-            self.current_pose.pose.orientation.z = 0
-        elif (self._facing == "LEFT"):
-            self.current_pose.pose.orientation.w = 0
-            self.current_pose.pose.orientation.z = 1
-        elif (self._facing == "UP"):
-            self.current_pose.pose.orientation.w = -1
-            self.current_pose.pose.orientation.z = -1
-        else:
-            self.current_pose.pose.orientation.w = 1
-            self.current_pose.pose.orientation.z = -1
+    # TODO: commented this function as it seems to be same as the one below
+    # def send_robot_location(self, coord):
+    #     # print(self._facing)
+    #     if (self._facing == "RIGHT"):
+    #         self.current_pose.pose.orientation.w = -1
+    #         self.current_pose.pose.orientation.z = 0
+    #     elif (self._facing == "LEFT"):
+    #         self.current_pose.pose.orientation.w = 0
+    #         self.current_pose.pose.orientation.z = 1
+    #     elif (self._facing == "UP"):
+    #         self.current_pose.pose.orientation.w = -1
+    #         self.current_pose.pose.orientation.z = -1
+    #     else:
+    #         self.current_pose.pose.orientation.w = 1
+    #         self.current_pose.pose.orientation.z = -1
 
         # while not rospy.is_shutdown():
         #     rospy.wait_for_message("/amcl_pose", PoseWithCovarianceStamped, 100)

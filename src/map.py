@@ -67,6 +67,7 @@ def possible_transitions():
             "s14" : [RIGHT, UP, DOWN],
             "s15" : [LEFT, DOWN],
             "s16" : [UP, DOWN],
+            # "s16" : [TERMINAL],
             "s17" : [RIGHT],
             "s18" : [LEFT, UP, DOWN],
             "s19" : [RIGHT],

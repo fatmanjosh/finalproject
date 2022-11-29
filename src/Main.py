@@ -54,25 +54,25 @@ def main():
     shop.publish_people()
     shop.publish_boxes()
     shop.publish_boxes_to_visit()
+    shop.policy_iteration()
     
     i = 1
-    while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions):  # until a terminal state is reached
-        if(i == 1):  # TODO: does this always run? is there a better way to implement this?
-            # print("change\n\n")
-            # print("calling state uncertainty")
-            # print(f"before: {shop.people}")
-            shop.set_people(1)
-            # print(f"after: {shop.people}")
-
-            i = 0
-            shop.transitions = transitions.transitions(shop.people)
-            shop.policy_iteration()
-            shop.publish_people()
-        # myRobot.markers()
-        myRobot.send_robot_location(map.states()[myRobot.get_location()])  # send robot location to rviz publisher
-        i +=1
+    while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions, shop.transitions, shop.people):  # until a terminal state is reached
+        
+        myRobot.send_robot_location(map.states()[myRobot.get_location()])  # update robot's pose for rviz
+        done = False
         
         if myRobot.check_if_at_box(shop.boxes_to_visit.keys()):  # if the robot is at one of the required boxes
+            
+            if (i == 2):
+                done = True
+                shop.set_people(1)
+                
+                i = 0
+
+                shop.transitions = transitions.transitions(shop.people)
+                print(shop.transitions)
+                shop.publish_people()
             
             # get the box at our current state
             for box in boxes:
@@ -101,6 +101,25 @@ def main():
                 shop.publish_boxes_to_visit()
                 shop.set_path_to_customer()
 
+                
+        if(i == 2 and done == False):  # TODO: does this always run? is there a better way to implement this?
+            # print("change\n\n\n\n")
+            shop.set_people(1)
+            i = 0
+
+            before = transitions.transitions(shop.people)
+
+            shop.transitions = before
+
+            after = transitions.transitions(shop.people)
+
+            shop.policy_iteration()
+            shop.publish_people()
+
+        myRobot.send_robot_location(map.states()[myRobot.get_location()])  # send robot location to rviz publisher
+            
+        i += 1    
+        
         if myRobot.get_location() == "s8":  # if robot is back in state 8 with the customer, end loop
             print("robot now back at customer \n")
 
@@ -121,7 +140,7 @@ def main():
             # get new customer?            
 
             break
-
+        
     print("\nsuccess!!!!")
     
     

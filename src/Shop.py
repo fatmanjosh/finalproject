@@ -38,7 +38,7 @@ class Shop:
         self.box_states = self.generate_box_states(boxes)
         self.boxes_to_visit = {}
         
-        self.NUM_OF_PEOPLE = 50
+        self.NUM_OF_PEOPLE = 30
         self.heatmap = heatmap(self.NUM_OF_PEOPLE, self.box_states)  # TODO: should this use boxes_to_visit rather than all boxes across map?
 
         self.policy_pub = rospy.Publisher("/policy", PoseArray, queue_size = 100)
@@ -49,15 +49,15 @@ class Shop:
         self.actions = map.actions()
         self.people = self.heatmap.stateUncertainty(0)
         self.transitions = transitions.transitions(self.people)
+        self.rewards = self.generate_rewards()
 
         # should these only be done after robot has been given a list of items to pick up?
         # seems pointless doing it when Shop is initialised, and then again when the robot has a list of items
-        self.rewards = self.generate_rewards()
         # self.policy_iteration()
-        self.people = self.set_people(self.NUM_OF_PEOPLE)
-        self.transitions = transitions.transitions(self.people)
-        print(f"\n{sorted(self.people)}")
-        self.policy_iteration()
+        # self.people = self.set_people(self.NUM_OF_PEOPLE)
+        # self.transitions = transitions.transitions(self.people)
+        # print(f"\n{sorted(self.people)}")
+        # self.policy_iteration()
 
         self.point_pub = rospy.Publisher("/pcloud", PointCloud, queue_size = 100)
         self.box_pub = rospy.Publisher("/boxes", PointCloud, queue_size = 100)
@@ -103,8 +103,6 @@ class Shop:
         total.poses= arrows
         self.policy_pub.publish(total)
         # print("published")
-
-
 
     def publish_people(self):
         point_array = PointCloud()
@@ -199,7 +197,6 @@ class Shop:
             possible_box_locations.remove(selected_state)  # remove state from list
             box_states["s" + str(selected_state)] = box  # add state to a dictionary with the box contents
             print(f"{selected_state} : {box}")
-
         return box_states
 
     def update_box_states(self, state):
@@ -268,16 +265,15 @@ class Shop:
         print("\n\nReturning to customer\n\n")
         self.policy_iteration()
 
+
     def add_new_box_rewards(self, list_of_states):
         # used to add a reward of +100 to every box in the given list
         for state in list_of_states:
             self.rewards.update({state : 100})
-        self.policy_iteration()
 
     def clear_box_rewards(self, state):
         # used to set reward of a box state to -1 once it has been visited
         self.rewards.update({state : -1})
-        self.policy_iteration()
 
     def policy_iteration(self):
         # Initialize Markov Decision Process model

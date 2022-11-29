@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 import map
 
+
 def transitions(people):
-    transitions={
-            "RIGHT" : transition_states("RIGHT", 1, 0, people),
-            "LEFT" : transition_states("LEFT", -1, 0, people),
-            "UP" : transition_states("UP", 0, 1, people),
-            "DOWN" : transition_states("DOWN", 0, -1, people),
-            "TERMINAL": transition_states("TERMINAL", 0, 0, people)
-        }
+
+    transitions = {
+        "RIGHT": transition_states("RIGHT", 1, 0, people),
+        "LEFT": transition_states("LEFT", -1, 0, people),
+        "UP": transition_states("UP", 0, 1, people),
+        "DOWN": transition_states("DOWN", 0, -1, people),
+        "TERMINAL": transition_states("TERMINAL", 0, 0, people)
+    }
     return transitions
+
 
 def transition_states(direction, x, y, people):
     """
@@ -20,58 +23,43 @@ def transition_states(direction, x, y, people):
     :param y: what to add to the y axis to go in that direction
     :return: transition probabilities dictionary
     """
-    #add heatmap uncertainty
+    # add heatmap uncertainty
 
     states = map.states()
     possible_transitions = map.possible_transitions()
-
-    uncertainty = -1
-
     transition_dict = {}
+
+    uncertainty = 1
     for state in states:
         transition_dict[state] = {}
-        calculated = False
         for next_state in states:
+            if state == next_state:                           # set them all to 1 initially and then if it turns out you
+                transition_dict[state][next_state] = 1     # <- don't have to stay there then it gets updated later
+            elif direction in possible_transitions[state] \
+                    and states[state][0] + x == states[next_state][0] \
+                    and states[state][1] + y == states[next_state][1]:  # if you can go in the direction
+                uncertainty = (people.count(int(''.join(filter(str.isdigit, next_state))))) * 0.29 + 0.1
+                # calculates the number of people in the cell and then works out the probability of transition
+                transition_dict[state][next_state] = 1 - uncertainty
+            else:
+                transition_dict[state][next_state] = 0
+        transition_dict[state].update({state: uncertainty})
 
-
-            # 10 people per state
-
-            #if self.possible_transitions[state] == ["TERMINAL"]:
-            #    transition_dict[state][next_state] = 1
-            if next_state == state: # if the next state and the start state are the same
-
-                # print("***** The uncertainty is this ******")
-                # print(f"state{state} uncertainty : {uncertainty}")
-
-
-
-                if not direction in possible_transitions[state]:# if you cant move in that direction from state
-                    transition_dict[state][next_state] = 1   # stay where you are
-                else:
-                    if calculated == False:
-                        uncertainty = (people.count(int(''.join(filter(str.isdigit, next_state))))) * 0.25 + 0.2
-                        calculated = True
-
-                    transition_dict[state][next_state] = uncertainty    # otherwise you have a probability of not moving 0.2
-            elif direction in possible_transitions[state] and states[state][0] + x == states[next_state][0] and states[state][1] + y == states[next_state][1]: #if you can go in the direction
-                if calculated == False:
-                    uncertainty = (people.count(int(''.join(filter(str.isdigit, next_state))))) * 0.25 + 0.2
-                    calculated = True
-                transition_dict[state][next_state] = 1 - uncertainty        #and if the state in the direction
-            else:                                                       #is the next state then if more then 10 people there can't go there
-                transition_dict[state][next_state] = 0 # if you can t go there then probability 0
- 
     return transition_dict
+
+
+
 
 # We don't use these
 def calc_state_string(sx, sy):
     return "s" + str(sx + sy * 11)
 
+
 def state_int(x, y):
     return x + y * 11
 
-def generate_states():
 
+def generate_states():
     grid_map = map.grid_map()
     possible_states = {}
     state_no = "s"
@@ -81,5 +69,4 @@ def generate_states():
             if grid_map[row][col] == 0:
                 possible_states[str(state_no) + str(i)] = (col, row)
                 i += 1
-    # print(possible_states)
     return possible_states
