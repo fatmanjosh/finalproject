@@ -4,7 +4,9 @@ import rospy
 from heatmap import heatmap
 import map, transitions
 from sensor_msgs.msg import PointCloud
-from geometry_msgs.msg import PoseArray, Pose, Point
+from geometry_msgs.msg import PoseArray, Pose, Point, PointStamped
+from visualization_msgs.msg import Marker, MarkerArray
+
 
 
 class Shop:
@@ -62,12 +64,74 @@ class Shop:
         self.point_pub = rospy.Publisher("/pcloud", PointCloud, queue_size = 100)
         self.box_pub = rospy.Publisher("/boxes", PointCloud, queue_size = 100)
         self.box_to_visit_pub = rospy.Publisher("/boxes_to_visit", PointCloud, queue_size = 100)
+        self.start_cust_pub = rospy.Publisher("/start_cust", PointStamped, queue_size = 100)
+        self.end_cust_pub = rospy.Publisher("/end_cust", PointStamped, queue_size = 100)
     
 
         self.publish_people()
         
     def set_people(self, number_of_people):
-        return self.heatmap.stateUncertainty(1)            
+        return self.heatmap.stateUncertainty(1)
+
+    def post_start_customer(self):
+        cust = PointStamped()
+        x, y = map.states()["s8"]
+        cust.point.x = x * 7 + 4
+        cust.point.y = y * 7 + 4
+        cust.header.frame_id = "map"
+        self.start_cust_pub.publish(cust)
+
+    def _init_markers(self):
+        marker_idx = 0
+        marker_array_msg = MarkerArray()
+        for i in range(2):
+            marker = Marker()
+            marker.header.frame_id = "map"
+            marker.id = i + 1
+            marker.header.stamp = rospy.Time.now()
+            marker.type = 1
+            marker.action = 2
+            marker.pose = Pose()
+            marker.pose.position.x = 10
+            marker.pose.position.y = 10
+            marker.pose.position.z = 2
+            marker.pose.orientation.w = 10
+            marker.pose.orientation.y = 10
+            marker.pose.orientation.x = 10
+            marker.pose.orientation.z  = 10
+            marker.color.r = 1
+            marker.color.g = 1
+            marker.color.b = 1
+            marker.color.a = 1
+            marker.scale.x = 10
+            marker.scale.y = 10
+            marker.scale.z = 10
+            marker.frame_locked = True
+            marker.ns = f"test name {i}"
+            marker_array_msg.markers.append(marker)
+        pub = rospy.Publisher("/markers", MarkerArray, queue_size = 100)
+        print(marker_array_msg)
+        print("\n\n\n\n\n markers \n\n\n\n\n")
+        r = rospy.Rate(1)
+        for j in range(10):
+            pub.publish(marker_array_msg)
+            r.sleep()
+
+
+
+
+    def post_end_customer(self):
+        cust = PointStamped()
+        x, y = map.states()["s8"]
+        cust.point.x = x * 7 + 4
+        cust.point.y = y * 7 + 4
+        cust.header.frame_id = "map"
+        self.end_cust_pub.publish(cust)
+        old_cust = PointStamped()
+        old_cust.point.x = 100000000
+        old_cust.header.frame_id = "map"
+        self.start_cust_pub.publish(old_cust)
+
 
     def show_policy(self):
         arrows = []
@@ -189,15 +253,28 @@ class Shop:
         return self.box_states
 
     def generate_box_states(self, boxes):
-        # randomly allocate boxes to states along aisles in the map
-        possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
+        
+        box_states_dict = {"Spices"  : "s19",   "Oil"        : "s25",   "Bread"  : "s27", 
+                           "Alcohol" : "s29",   "Pasta"      : "s42",   "Baking" : "s43",
+                           "Rice"    : "s52",   "Vegetables" : "s55",   "Dairy"  : "s56",
+                           "Fruit"   : "s61",   "Fish"       : "s73",   "Meat"   : "s74"}
+        
         box_states = {}
         for box in boxes:
-            selected_state = random.choice(possible_box_locations)  # pick random state from list
-            possible_box_locations.remove(selected_state)  # remove state from list
-            box_states["s" + str(selected_state)] = box  # add state to a dictionary with the box contents
-            print(f"{selected_state} : {box}")
-        return box_states
+            box_states[box_states_dict[str(box)]] = box
+            print(f"{box_states_dict[str(box)]} : {box}")
+        return box_states            
+        
+        # randomly allocate boxes to states along aisles in the map
+        # possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
+        # box_states = {}
+        # for box in boxes:
+        #     selected_state = random.choice(possible_box_locations)  # pick random state from list
+        #     possible_box_locations.remove(selected_state)  # remove state from list
+        #     box_states["s" + str(selected_state)] = box  # add state to a dictionary with the box contents
+        #     print(f"{selected_state} : {box}")
+        #     print(str(box))
+        # return box_states
 
     def update_box_states(self, state):
         # removes the box in given state and sets its reward to -1

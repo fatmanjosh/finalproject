@@ -23,12 +23,12 @@ class Robot:
         # rospy.init_node('mover', anonymous=True)
         self._goal_ingredients = goal_ingredients
         self._inventory = []
-        self._out_of_stock = ["oat milk", "cashews"]  # used to monitor oos items as robot finds them - initially empty?
+        self._out_of_stock = ["oat milk"]  # used to monitor oos items as robot finds them - initially empty?
         self._substitutions = {}
         self._unavailable = []
         self._replacements = self.update_food_dictionary(replacements)
-        self._facing = "RIGHT"
-        self._location = "s8"
+        self._facing = "DOWN"
+        self._location = "s15"
         self.current_pose = PoseStamped()
         
         self.current_box = None
@@ -55,27 +55,27 @@ class Robot:
     def get_location(self):
         return self._location
 
-    def markers(self):
-        marker = Marker()
-        # marker.pose = self.current_pose.pose
-        marker.header.frame_id = "/map"
-        marker.id = 0
-        marker.pose.position.x = 10
-        marker.pose.position.y = 10
-
-        marker.type = marker.CYLINDER
-        marker.action = 2
-        marker.color.r = 1
-        marker.color.g = 1
-        marker.color.b = 0.0
-        marker.color.a = 1
-        marker.scale.x = 10
-        marker.scale.y = 10
-        marker.scale.z = 100
-        marker.frame_locked = True
-        marker.ns = "Goal"
-
-        self.mark_pub.publish(marker)
+    # def markers(self):
+    #     marker = Marker()
+    #     # marker.pose = self.current_pose.pose
+    #     marker.header.frame_id = "/map"
+    #     marker.id = 0
+    #     marker.pose.position.x = 10
+    #     marker.pose.position.y = 10
+    #
+    #     marker.type = marker.CYLINDER
+    #     marker.action = 2
+    #     marker.color.r = 1
+    #     marker.color.g = 1
+    #     marker.color.b = 0.0
+    #     marker.color.a = 1
+    #     marker.scale.x = 10
+    #     marker.scale.y = 10
+    #     marker.scale.z = 100
+    #     marker.frame_locked = True
+    #     marker.ns = "Goal"
+    #
+    #     self.mark_pub.publish(marker)
 
     def get_box_at_state(self, box_states):
         # returns the box at the current state
@@ -505,39 +505,46 @@ class Robot:
         
         for _ in range(3):  # repeat 3 times in case replacements are in the same box
             for i in range (len(goal_ingredients)-1, -1, -1):
-                # print(f"index {i}: attempting to pick up {goal_ingredients[i]} ")
-                self.pick_up_ingredient(goal_ingredients[i])
-                # print(f"index {i}: has this changed? --> {goal_ingredients[i]} \n")
+                quantity_to_pick_up = self._goal_ingredients.count(str(goal_ingredients[i]))
+                self.pick_up_ingredient(goal_ingredients[i], quantity_to_pick_up)
+                # items with 2+ quantity could affect goal_ingredients 
 
 
 
-    def pick_up_ingredient(self, ingredient):
+
+    def pick_up_ingredient(self, ingredient, quantity):
         # attempts to pick up a single ingredient from box and add it to the robot inventory
         
         # if not self.current_box.valid_ingredient(ingredient):  # if ingredient does not exist in this box
         #     print(f"Ingredient {ingredient} cannot be found in this box.")
         #     return False
-        if self.current_box.valid_ingredient(ingredient):  # if ingredient exists in this box
-            if not self.current_box.check_for_ingredient(ingredient):  # if ingredient does exist in this box, but it is oos
-                self._out_of_stock.append(ingredient)  # add ingredient to robot's list of oos ingredients
-                if not self.check_for_replacements(ingredient):  # if ingredient does not have a replacement, return False
-                    print(f"====Ingredient '{ingredient}' is out of stock and customer has not requested any replacements")
+        if ingredient in self._goal_ingredients:
+            if self.current_box.valid_ingredient(ingredient):  # if ingredient exists in this box
+                if not self.current_box.check_for_ingredient(ingredient):  # if ingredient does exist in this box, but it is oos
+                    self._out_of_stock.append(ingredient)  # add ingredient to robot's list of oos ingredients
+                    if not self.check_for_replacements(ingredient):  # if ingredient does not have a replacement, return False
+                        print(f"====Ingredient '{ingredient}' is out of stock and customer has not requested any replacements")
+                        self._goal_ingredients.remove(ingredient)  # remove ingredient from goal_ingredients
+                        # return False
+                    
+                    else:
+                        print(f"====Ingredient '{ingredient}' is out of stock but customer has requested a replacement")
+                    
+                    # return False  # returns False if item was not successfully picked up
+                
+                    # TODO: add case if ingredient is oos but does have a possible replacement
+                    # it is automatically added to goal_ingredients by check_for_replacements function
+                    # but if replacement is in this box then add it to inventory here?
+                            
+                else:  # if ingredient is in stock
+                    if quantity > 1:
+                        # check here if more than one item is available
+                        # if it is then add the item x many times
+                        # if not then add none
+                        print("quantity is 2+")
+                    self._inventory.append(self.current_box.retrieve_ingredient(ingredient))  # add ingredient to inventory and remove it from box
                     self._goal_ingredients.remove(ingredient)  # remove ingredient from goal_ingredients
-                    # return False
-                
-                else:
-                    print(f"====Ingredient '{ingredient}' is out of stock but customer has requested a replacement")
-                
-                # return False  # returns False if item was not successfully picked up
-            
-                # TODO: add case if ingredient is oos but does have a possible replacement
-                # it is automatically added to goal_ingredients by check_for_replacements function
-                # but if replacement is in this box then add it to inventory here?
-                        
-            else:  # if ingredient is in stock
-                self._inventory.append(self.current_box.retrieve_ingredient(ingredient))  # add ingredient to inventory and remove it from box
-                self._goal_ingredients.remove(ingredient)  # remove ingredient from goal_ingredients
-                print(f"Ingredient '{ingredient}' added to inventory")
+                    print(f"Ingredient '{ingredient}' added to inventory")
         
         # else:  # if ingredient does not exist in this box
         #     print(f"Ingredient {ingredient} cannot be found in this box.")

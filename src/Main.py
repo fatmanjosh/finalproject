@@ -6,8 +6,6 @@ from Robot import Robot
 from Customer import Customer
 from Shop import Shop
 import map, transitions
-# import os
-
 
 def main():
     # initialise boxes with ingredients and quantities
@@ -18,7 +16,8 @@ def main():
     boxes.append(Box("Rice", {"jasmine rice": 1, "basmati rice": 1, "long grain rice": 1}))
     boxes.append(Box("Oil", {"sunflower oil": 2, "olive oil": 3, "vegetable oil": 1, "avocado oil": 0}))
     boxes.append(Box("Baking", {"flour": 4, "eggs": 2, "yeast": 1}))
-    boxes.append(Box("Nuts", {"almonds": 0, "cashews": 0, "peanuts": 4}))
+    # boxes.append(Box("Nuts", {"almonds": 0, "cashews": 0, "peanuts": 4})) # replaced by bread box
+    boxes.append(Box("Bread", {"white bread": 3, "seeded bread": 2, "bagels": 1}))
     boxes.append(Box("Pasta", {"spaghetti": 3, "penne": 2, "lasagne": 1}))
     boxes.append(Box("Fish", {"salmon": 0, "sea bass": 2}))  # TODO: change salmon back to 1
     boxes.append(Box("Vegetables", {"carrots": 2, "cucumber": 1, "potato": 9}))
@@ -27,6 +26,8 @@ def main():
     boxes.append(Box("Alcohol", {"vodka": 0, "rum": 3})) # reset vodka to 2
 
     shop = Shop(boxes)
+
+    shop._init_markers()
 
     # create a robot and pass in ingredients and replacements provided by customer
     # TODO: update to make use of Customer class rather than being hard-coded
@@ -88,14 +89,16 @@ def main():
     shop.publish_boxes()
     shop.publish_boxes_to_visit()
     shop.policy_iteration()
+    shop.post_start_customer()
     
     i = 1
+    collected_all_items = False
     while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions, shop.transitions, shop.people):  # until a terminal state is reached
         
         myRobot.send_robot_location(map.states()[myRobot.get_location()])  # update robot's pose for rviz
         done = False
         
-        if myRobot.check_if_at_box(shop.boxes_to_visit.keys()):  # if the robot is at one of the required boxes
+        if myRobot.check_if_at_box(shop.boxes_to_visit.keys()):            # if the robot is at one of the required boxes
             
             if (i == 2):
                 done = True
@@ -104,7 +107,7 @@ def main():
                 i = 0
 
                 shop.transitions = transitions.transitions(shop.people)
-                print(shop.transitions)
+                # print(shop.transitions)
                 shop.publish_people()
             
             # get the box at our current state
@@ -133,6 +136,8 @@ def main():
             if len(shop.boxes_to_visit) == 0:  # if all boxes have been visited then update policy iteration to return to state 8
                 shop.publish_boxes_to_visit()
                 shop.set_path_to_customer()
+                shop.post_end_customer()
+                collected_all_items = True
 
                 
         if(i == 2 and done == False):  # TODO: does this always run? is there a better way to implement this?
@@ -153,7 +158,7 @@ def main():
             
         i += 1    
         
-        if myRobot.get_location() == "s8":  # if robot is back in state 8 with the customer, end loop
+        if myRobot.get_location() == "s8" and collected_all_items == True:  # if robot is back in state 8 with the customer, end loop
             print("robot now back at customer \n")
 
             # sort lists alphabetically for readability and then print them 
