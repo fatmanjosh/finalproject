@@ -7,6 +7,7 @@ from geometry_msgs.msg import Twist, Point, PoseStamped, Pose
 from math import atan2, pi
 from nav_msgs.msg import Odometry
 import random
+import map
 
 import Box
 
@@ -55,27 +56,6 @@ class Robot:
     def get_location(self):
         return self._location
 
-    # def markers(self):
-    #     marker = Marker()
-    #     # marker.pose = self.current_pose.pose
-    #     marker.header.frame_id = "/map"
-    #     marker.id = 0
-    #     marker.pose.position.x = 10
-    #     marker.pose.position.y = 10
-    #
-    #     marker.type = marker.CYLINDER
-    #     marker.action = 2
-    #     marker.color.r = 1
-    #     marker.color.g = 1
-    #     marker.color.b = 0.0
-    #     marker.color.a = 1
-    #     marker.scale.x = 10
-    #     marker.scale.y = 10
-    #     marker.scale.z = 100
-    #     marker.frame_locked = True
-    #     marker.ns = "Goal"
-    #
-    #     self.mark_pub.publish(marker)
 
     def get_box_at_state(self, box_states):
         # returns the box at the current state
@@ -177,6 +157,15 @@ class Robot:
         x = (post_coords[0] - pre_coods[0]) / 5
         y = (post_coords[1] - pre_coods[1]) / 5
         return -x, -y
+
+
+    def put_back_all_required_ingredients(self, shop):
+        inventory_len = len(self._inventory)
+        inventory = self._inventory
+        for i in range (inventory_len):
+            self.put_back_ingredient(inventory[i], shop)
+
+        self._inventory = inventory
 
 
 
@@ -367,7 +356,7 @@ class Robot:
     #         self.current_pose.pose.orientation.w = 0
     #         self.current_pose.pose.orientation.z = 1
     #     elif (self._facing == "UP"):
-    #         self.current_pose.pose.orientation.w = -1
+    #         self.cpopurrent_pose.pose.orientation.w = -1
     #         self.current_pose.pose.orientation.z = -1
     #     else:
     #         self.current_pose.pose.orientation.w = 1
@@ -495,7 +484,7 @@ class Robot:
         return True
 
         
-    def pick_up_all_required_ingredients_from_box(self):
+    def pick_up_all_required_ingredients_from_box(self, shop):
         # attempts to pick up all ingredients in goal ingredients that belong to this box
         
         # for ingredient in goal_ingredients:
@@ -506,13 +495,14 @@ class Robot:
         for _ in range(3):  # repeat 3 times in case replacements are in the same box
             for i in range (len(goal_ingredients)-1, -1, -1):
                 quantity_to_pick_up = self._goal_ingredients.count(str(goal_ingredients[i]))
-                self.pick_up_ingredient(goal_ingredients[i], quantity_to_pick_up)
+                print(f"goal_ingredients[i] {goal_ingredients[i]}")
+                self.pick_up_ingredient(goal_ingredients[i], quantity_to_pick_up, shop)
                 # items with 2+ quantity could affect goal_ingredients 
 
 
 
 
-    def pick_up_ingredient(self, ingredient, quantity):
+    def pick_up_ingredient(self, ingredient, quantity,shop):
         # attempts to pick up a single ingredient from box and add it to the robot inventory
         
         # if not self.current_box.valid_ingredient(ingredient):  # if ingredient does not exist in this box
@@ -525,6 +515,7 @@ class Robot:
                     if not self.check_for_replacements(ingredient):  # if ingredient does not have a replacement, return False
                         print(f"====Ingredient '{ingredient}' is out of stock and customer has not requested any replacements")
                         self._goal_ingredients.remove(ingredient)  # remove ingredient from goal_ingredients
+                        self.report_out_of_stock(ingredient, shop)
                         # return False
                     
                     else:
@@ -548,6 +539,43 @@ class Robot:
         
         # else:  # if ingredient does not exist in this box
         #     print(f"Ingredient {ingredient} cannot be found in this box.")
+
+
+    def report_out_of_stock(self, ingredient, shop):
+        user_input = (input(f"{ingredient} is out of stock and you have no replacements."
+                            f"The current recipe cannot be completed\n"
+                           f"do you want to request a new recipe? y/n : \n")).lower()
+        while user_input not in ["y", "n"]:
+            user_input = (input("Please enter only y or n: ")).lower()
+
+        if user_input == "n":
+            self.put_all_ingredients_back(shop)
+
+
+    def put_all_ingredients_back(self, shop):
+        shop.set_boxes_to_visit(self.get_inventory(), shop.boxes)
+        shop.rewards = shop.generate_rewards()
+        shop.add_new_box_rewards(shop.boxes_to_visit.keys())
+        shop.publish_boxes_to_visit()
+        print(shop.rewards)
+        if(self._inventory == []):
+            shop.set_path_to_customer()
+
+
+        self._goal_ingredients = []
+
+        shop.policy_iteration()
+        print("uuruu")
+        shop.put_all_back(self)
+
+    def put_back_ingredient(self, ingredient,shop):
+
+        if self.current_box.valid_ingredient(ingredient):  # if ingredient exists in this box
+            self._inventory.remove(ingredient)  # remove ingredient from inventory
+            self.current_box.put_back_ingredient(ingredient)
+
+
+
         
     def report_impossible_task(self):
         print("Cannot be done")

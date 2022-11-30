@@ -22,16 +22,16 @@ def main():
     boxes.append(Box("Fish", {"salmon": 0, "sea bass": 2}))  # TODO: change salmon back to 1
     boxes.append(Box("Vegetables", {"carrots": 2, "cucumber": 1, "potato": 9}))
     boxes.append(Box("Fruit", {"banana": 4, "apple": 5, "strawberry": 2}))
-    boxes.append(Box("Spices", {"paprika": 2, "cumin": 3}))
+    boxes.append(Box("Spices", {"paprika": 0, "cumin": 3}))
     boxes.append(Box("Alcohol", {"vodka": 2, "rum": 3}))
 
     shop = Shop(boxes)
 
-    shop._init_markers()
+    # shop._init_markers()
 
     # create a robot and pass in ingredients and replacements provided by customer
     # TODO: update to make use of Customer class rather than being hard-coded
-    goal_ingredients = ["bacon", "salmon", "carrots", "paprika", "oat milk", "bacon", "basmati rice", "eggs", "bagels", "avocado oil"]
+    goal_ingredients = ["bagels", "paprika"]
     requested_ingredients = goal_ingredients.copy()
     replacements = [["seeded bread", "white bread"], ["oat milk", "almond milk"], ["bacon", "ham"], ["avocado oil", "olive oil"]]
     myRobot = Robot(goal_ingredients, replacements)
@@ -67,7 +67,7 @@ def main():
         
         if myRobot.check_if_at_box(shop.boxes_to_visit.keys()):            # if the robot is at one of the required boxes
             
-            if (i == 2):
+            if (i == 1000000):
                 done = True
                 shop.set_people(1)
                 
@@ -87,14 +87,22 @@ def main():
             print(f"contents of current box : {myRobot.current_box.get_available_ingredients()}")
             
             # picks up all goal ingredients contained within this box
-            myRobot.pick_up_all_required_ingredients_from_box()
+
+            print(f"btv: {shop.boxes_to_visit}")
+
+            myRobot.pick_up_all_required_ingredients_from_box(shop)
+
+            print(f"btv2: {shop.boxes_to_visit}")
             
             # print out robot inventory and contents of box after robot picks up ingredients
             print(f"\nrobot inventory : {myRobot.get_inventory()}")
             print(f"updated box contents: {myRobot.current_box.get_available_ingredients()}")               
 
             # update boxes to visit in case any new ones were added, e.g. if an item was oos and replacement is in another box
-            shop.set_boxes_to_visit(myRobot.get_goal_ingredients(), boxes)  
+            shop.set_boxes_to_visit(myRobot.get_goal_ingredients(), boxes)
+
+            print(f"btv3: {shop.boxes_to_visit}")
+
             
             shop.update_boxes_to_visit(myRobot.get_location())  # remove box from list of remaining boxes and set its reward back to -1
             shop.print_boxes_to_visit()  # print the list of remaining boxes to visit
@@ -106,17 +114,13 @@ def main():
                 shop.post_end_customer()
                 collected_all_items = True
 
+            shop.policy_iteration()
+
                 
-        if(i == 2 and done == False):  # TODO: does this always run? is there a better way to implement this?
+        if(i == 100000 and done == False):  # TODO: does this always run? is there a better way to implement this?
             # print("change\n\n\n\n")
-            shop.set_people(1)
+            shop.set_people(100000)
             i = 0
-
-            before = transitions.transitions(shop.people)
-
-            shop.transitions = before
-
-            after = transitions.transitions(shop.people)
 
             shop.policy_iteration()
             shop.publish_people()
@@ -156,3 +160,5 @@ if __name__ == '__main__':
     rospy.init_node("map_tester")
     main()
     rospy.spin()
+
+# main()
