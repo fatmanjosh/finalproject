@@ -189,15 +189,28 @@ class Shop:
         return self.box_states
 
     def generate_box_states(self, boxes):
-        # randomly allocate boxes to states along aisles in the map
-        possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
+        
+        box_states_dict = {"Spices"  : "s19",   "Oil"        : "s25",   "Bread"  : "s27", 
+                           "Alcohol" : "s29",   "Pasta"      : "s42",   "Baking" : "s43",
+                           "Rice"    : "s52",   "Vegetables" : "s55",   "Dairy"  : "s56",
+                           "Fruit"   : "s61",   "Fish"       : "s73",   "Meat"   : "s74"}
+        
         box_states = {}
         for box in boxes:
-            selected_state = random.choice(possible_box_locations)  # pick random state from list
-            possible_box_locations.remove(selected_state)  # remove state from list
-            box_states["s" + str(selected_state)] = box  # add state to a dictionary with the box contents
-            print(f"{selected_state} : {box}")
-        return box_states
+            box_states[box_states_dict[str(box)]] = box
+            print(f"{box_states_dict[str(box)]} : {box}")
+        return box_states            
+        
+        # randomly allocate boxes to states along aisles in the map
+        # possible_box_locations = [10, 13, 17, 19, 23, 25, 27, 29, 31, 42, 43, 45, 48, 52, 55, 56, 58, 61, 72, 73, 74, 75, 76]
+        # box_states = {}
+        # for box in boxes:
+        #     selected_state = random.choice(possible_box_locations)  # pick random state from list
+        #     possible_box_locations.remove(selected_state)  # remove state from list
+        #     box_states["s" + str(selected_state)] = box  # add state to a dictionary with the box contents
+        #     print(f"{selected_state} : {box}")
+        #     print(str(box))
+        # return box_states
 
     def update_box_states(self, state):
         # removes the box in given state and sets its reward to -1
