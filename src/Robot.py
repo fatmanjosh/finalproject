@@ -447,7 +447,7 @@ class Robot:
         # takes an array of ingredients and their possible replacements and reformats this into a dictionary
         """
         :param: replacements in the form [[a, b, c], [d, e]:
-        :return: replacements in the form {a:b, b:c, d: e}
+        :return: replacements in the form {a:b, b:c, d:e}
         """
         result = {}
         number_of_items = len(replacements)
@@ -474,26 +474,55 @@ class Robot:
         # as above but for a single ingredient
         # returns True if a replacement is successfully found or returns False if there are no replacements
         current_ingredient = ingredient
-        if current_ingredient in self._goal_ingredients:
-            # find a replacement
-            while current_ingredient in self._out_of_stock:  # if ingredient is oos try and swap it for a replacement
-                if current_ingredient not in self._replacements.keys():  # if ingredient does not have a replacement return False
-                    self._unavailable.append(current_ingredient)
-                    return False
-                current_ingredient = self._replacements[current_ingredient]  # otherwise, test again with ingredient's given replacement
+        if current_ingredient in self._out_of_stock:
+            if current_ingredient in self._goal_ingredients:
+                # find a replacement
+                while current_ingredient in self._out_of_stock:  # if ingredient is oos try and swap it for a replacement
+                    if current_ingredient not in self._replacements.keys():  # if ingredient does not have a replacement return False
+                        self._unavailable.append(current_ingredient)
+                        return False
+                    current_ingredient = self._replacements[current_ingredient]  # otherwise, test again with ingredient's given replacement
+                    
+                # update ingredient in _goal_ingredients
+                for i in range(len(self._goal_ingredients)):  # iterate through _goal_ingredients
+                    if ingredient == self._goal_ingredients[i]:  # until original oos ingredient is found
+                        self._goal_ingredients[i] = current_ingredient  # replace oos ingredient with current_ingredient
+                        # break
                 
-            # update ingredient in _goal_ingredients
-            for i in range(len(self._goal_ingredients)):  # iterate through _goal_ingredients
-                if ingredient == self._goal_ingredients[i]:  # until original oos ingredient is found
-                    self._goal_ingredients[i] = current_ingredient  # replace oos ingredient with current_ingredient
-                    break
-            # self._substitutions.update({ingredient : current_ingredient})
-            
-            if ingredient in self._substitutions.values():  # if the ingredient is already a replacement
-                ingredient = list(self._substitutions.keys())[list(self._substitutions.values()).index(ingredient)]  # get the parent ingredient that maps to this replacement
-            self._substitutions.update({ingredient : current_ingredient})  # replace this replacement with the new replacement
-        return True
+                if ingredient in self._substitutions.values():  # if the ingredient is already a replacement
+                    ingredient = list(self._substitutions.keys())[list(self._substitutions.values()).index(ingredient)]  # get the parent ingredient that maps to this replacement
+                    
+                self._substitutions.update({ingredient : current_ingredient})  # replace this replacement with the new replacement
+            return True
+        else:  # if current ingredient is a duplicate and is not actually out of stock
+            if current_ingredient in self._replacements.keys():
+                current_ingredient = self._replacements[current_ingredient]  # get the first replacement
+                
+                while current_ingredient in self._out_of_stock:  # if ingredient is oos try and swap it for a replacement
+                    if current_ingredient not in self._replacements.keys():  # if ingredient does not have a replacement return False
+                        self._unavailable.append(current_ingredient)
+                        return False
+                    current_ingredient = self._replacements[current_ingredient]  # otherwise, test again with ingredient's given replacement
 
+                for i in range(len(self._goal_ingredients)):  # replace all instances of ingredient in _goal_ingredients with current_ingredient (new replacement)
+                    if ingredient == self._goal_ingredients[i]:  # until original oos ingredient is found
+                        self._goal_ingredients[i] = current_ingredient  # replace oos ingredient with current_ingredient
+
+                if ingredient in self._substitutions.values():  # if the ingredient is already a replacement
+                    ingredient = list(self._substitutions.keys())[list(self._substitutions.values()).index(ingredient)]  # get the parent ingredient that maps to this replacement
+                    
+                self._substitutions.update({ingredient : current_ingredient})  # replace this replacement with the new replacement                
+                print(f"updated substitutions to account for dupe: {self._substitutions.items()}")
+                return True
+            
+            else:  # if ingredient is a duplicate and it does not have a replacement
+                print(f"dupe with no replacement for ingredient '{current_ingredient}'")
+                # remove substitution dictionary entry for pair with value current_ingredient 
+                if current_ingredient in self._substitutions.values():
+                    parent_ingredient = list(self._substitutions.keys())[list(self._substitutions.values()).index(current_ingredient)]
+                    self._substitutions.pop(parent_ingredient)
+                    self._unavailable.append(parent_ingredient)
+                return False
         
     def pick_up_all_required_ingredients_from_box(self):
         # attempts to pick up all ingredients in goal ingredients that belong to this box
@@ -505,8 +534,12 @@ class Robot:
         
         for _ in range(3):  # repeat 3 times in case replacements are in the same box
             for i in range (len(goal_ingredients)-1, -1, -1):
-                quantity_to_pick_up = self._goal_ingredients.count(str(goal_ingredients[i]))
+                # print(f"current i : {i}")
+                # print(f"current i : {i} : goal ingredient : {goal_ingredients[i]}")
+                quantity_to_pick_up = self._goal_ingredients.count(str(goal_ingredients[i]))  # counts the quantity of this item that has been requested by the customer 
                 self.pick_up_ingredient(goal_ingredients[i], quantity_to_pick_up)
+                if i > len(goal_ingredients)-1:
+                    break
                 # items with 2+ quantity could affect goal_ingredients 
 
 
@@ -537,14 +570,36 @@ class Robot:
                     # but if replacement is in this box then add it to inventory here?
                             
                 else:  # if ingredient is in stock
-                    if quantity > 1:
-                        # check here if more than one item is available
-                        # if it is then add the item x many times
-                        # if not then add none
-                        print("quantity is 2+")
-                    self._inventory.append(self.current_box.retrieve_ingredient(ingredient))  # add ingredient to inventory and remove it from box
-                    self._goal_ingredients.remove(ingredient)  # remove ingredient from goal_ingredients
-                    print(f"Ingredient '{ingredient}' added to inventory")
+                    if self.current_box.get_quantity_of_ingredient(ingredient) >= quantity:
+                        for _ in range(quantity):
+                            self._inventory.append(self.current_box.retrieve_ingredient(ingredient))  # add ingredient to inventory and remove it from box
+                            self._goal_ingredients.remove(ingredient)  # remove ingredient from goal_ingredients
+                            print(f"\n+ '{ingredient}' added to inventory")
+                    else:
+                        print(f"====Required quantity '{quantity}' of ingredient '{ingredient}' is unavailable so none were picked up")
+
+                        if not self.check_for_replacements(ingredient):  # if ingredient does not have a replacement, return False
+                            print(f"Customer has not requested any replacements for this item")
+                            for _ in range(quantity):
+                                self._goal_ingredients.remove(ingredient)  # remove all instances of ingredient from goal_ingredients 
+                            # return False
+
+                        else:
+                            for _ in range(quantity):
+                                if ingredient in self._goal_ingredients:
+                                    self._goal_ingredients.remove(ingredient)  # remove all instances of ingredient from goal_ingredients
+                            # self._goal_ingredients.append(self._replacements[ingredient])
+                            print(f"Customer has requested '{self._replacements[ingredient]}' as a replacement instead")
+                            # print(f"replacement should be : {self._replacements[ingredient]}")
+                                                        
+                    # if quantity > 1:
+                    #     # check here if more than one item is available
+                    #     # if it is then add the item x many times
+                    #     # if not then add none
+                    #     print("quantity is 2+")
+                    # self._inventory.append(self.current_box.retrieve_ingredient(ingredient))  # add ingredient to inventory and remove it from box
+                    # self._goal_ingredients.remove(ingredient)  # remove ingredient from goal_ingredients
+                    # print(f"Ingredient '{ingredient}' added to inventory")
         
         # else:  # if ingredient does not exist in this box
         #     print(f"Ingredient {ingredient} cannot be found in this box.")

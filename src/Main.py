@@ -12,7 +12,7 @@ def main():
     # note: robot also has a list of oos items passed in (for testing) though they may not match quantities below 
     boxes = []
     boxes.append(Box("Dairy", {"milk": 3, "oat milk": 0, "almond milk": 1}))
-    boxes.append(Box("Meat", {"bacon": 2, "pork mince": 1, "ham": 3}))
+    boxes.append(Box("Meat", {"bacon": 1, "pork mince": 1, "ham": 2}))
     boxes.append(Box("Rice", {"jasmine rice": 1, "basmati rice": 1, "long grain rice": 1}))
     boxes.append(Box("Oil", {"sunflower oil": 2, "olive oil": 3, "vegetable oil": 1, "avocado oil": 0}))
     boxes.append(Box("Baking", {"flour": 4, "eggs": 2, "yeast": 1}))
@@ -24,14 +24,12 @@ def main():
     boxes.append(Box("Fruit", {"banana": 4, "apple": 5, "strawberry": 2}))
     boxes.append(Box("Spices", {"paprika": 2, "cumin": 3}))
     boxes.append(Box("Alcohol", {"vodka": 2, "rum": 3}))
-
     shop = Shop(boxes)
 
-    # create a robot and pass in ingredients and replacements provided by customer
-    # TODO: update to make use of Customer class rather than being hard-coded
-    goal_ingredients = ["bacon", "salmon", "carrots", "paprika", "oat milk", "bacon", "basmati rice", "eggs", "bagels", "avocado oil"]
+    goal_ingredients = ["bacon", "salmon", "carrots", "paprika", "oat milk", "bacon", "basmati rice", "eggs", "bagels", "bacon", "avocado oil"]
     requested_ingredients = goal_ingredients.copy()
     replacements = [["seeded bread", "white bread"], ["oat milk", "almond milk"], ["bacon", "ham"], ["avocado oil", "olive oil"]]
+
     myRobot = Robot(goal_ingredients, replacements)
 
     myRobot.send_robot_location(map.states()[myRobot.get_location()])
@@ -130,7 +128,6 @@ def main():
             
             print(f"ingredients requested by customer : {requested_ingredients}")
             print(f"ingredients returned by the robot : {myRobot.get_inventory()}")
-            # print(f"unavailable items : {unavailable_items} \n")
             print(f"substitutions : {myRobot.get_substitutions()}")
             print(f"unavailable : {myRobot.get_unavailable()}")
 
@@ -144,9 +141,6 @@ def main():
         
     print("\nsuccess!!!!")
     
-    
-    # TODO: implement a loop around the 'while not' loop so the robot can collect items for back-to-back customers
-
 
 if __name__ == '__main__':
     rospy.init_node("map_tester")
