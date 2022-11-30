@@ -12,7 +12,7 @@ def main():
     # note: robot also has a list of oos items passed in (for testing) though they may not match quantities below 
     boxes = []
     boxes.append(Box("Dairy", {"milk": 3, "oat milk": 0, "almond milk": 1}))
-    boxes.append(Box("Meat", {"bacon": 2, "pork mince": 1, "ham": 3}))
+    boxes.append(Box("Meat", {"bacon": 1, "pork mince": 1, "ham": 2}))
     boxes.append(Box("Rice", {"jasmine rice": 1, "basmati rice": 1, "long grain rice": 1}))
     boxes.append(Box("Oil", {"sunflower oil": 2, "olive oil": 3, "vegetable oil": 1, "avocado oil": 0}))
     boxes.append(Box("Baking", {"flour": 4, "eggs": 2, "yeast": 1}))
@@ -24,16 +24,51 @@ def main():
     boxes.append(Box("Fruit", {"banana": 4, "apple": 5, "strawberry": 2}))
     boxes.append(Box("Spices", {"paprika": 0, "cumin": 3}))
     boxes.append(Box("Alcohol", {"vodka": 2, "rum": 3}))
-
     shop = Shop(boxes)
 
-    # shop._init_markers()
 
-    # create a robot and pass in ingredients and replacements provided by customer
-    # TODO: update to make use of Customer class rather than being hard-coded
-    goal_ingredients = ["bagels", "paprika"]
+    goal_ingredients = ["bacon", "salmon", "carrots", "paprika", "oat milk", "bacon", "basmati rice", "eggs", "bagels", "bacon", "avocado oil"]
     requested_ingredients = goal_ingredients.copy()
     replacements = [["seeded bread", "white bread"], ["oat milk", "almond milk"], ["bacon", "ham"], ["avocado oil", "olive oil"]]
+
+
+    # Uncomment block below when you want to use terminal to type in ingredients and replacements 
+    """""
+    shop._init_markers()
+
+    goal_ingredients = []
+    user_input = input("Enter requested ingredients, separated by commas: ")
+    goal_ingredients = user_input.split(",")
+
+    #algorithm:
+    #for items in requested ingredients, make list containing requested ingredient.
+    #make list of replacement ingredients.
+    # list1 + list 2 = list 3 [requested item, replacement1, replacement2, ...]
+    # replacements = [list(1), list(2), list(3), list(4), ...]
+    # we want a list containing lists. each list is [requested item, replacement 1, replacement 2, ...]
+
+    temp_list1 = []
+    temp2_list2 = []
+    temp_replacements = []
+    replacements = []
+
+    number_of_ingredients = len(goal_ingredients)
+    print(number_of_ingredients)
+    for n in range(number_of_ingredients):
+        temp_list1 = [goal_ingredients[n]]
+        print(temp_list1)
+        user_input = input("Enter replacements for ingredient " + goal_ingredients[n] + " in priority order separated by commas: ") #creates list of replacements
+        temp_list2 = user_input.split(",")
+        print(temp_list2)
+        temp_replacements = temp_list1 + temp_list2
+        replacements.append(temp_replacements)
+        print(replacements)
+    requested_ingredients = goal_ingredients.copy()
+    
+    #replacements = [["cashews", "almonds", "peanuts"], ["oat milk", "almond milk"], ["bacon", "ham"], ["avocado oil", "olive oil"]]
+    #^e.g. if no cashews bring almonds, if no almonds bring peanuts, if no peanuts give up and say not available.
+    """""
+
     myRobot = Robot(goal_ingredients, replacements)
 
     myRobot.send_robot_location(map.states()[myRobot.get_location()])
@@ -138,7 +173,6 @@ def main():
             
             print(f"ingredients requested by customer : {requested_ingredients}")
             print(f"ingredients returned by the robot : {myRobot.get_inventory()}")
-            # print(f"unavailable items : {unavailable_items} \n")
             print(f"substitutions : {myRobot.get_substitutions()}")
             print(f"unavailable : {myRobot.get_unavailable()}")
 
@@ -152,9 +186,6 @@ def main():
         
     print("\nsuccess!!!!")
     
-    
-    # TODO: implement a loop around the 'while not' loop so the robot can collect items for back-to-back customers
-
 
 if __name__ == '__main__':
     rospy.init_node("map_tester")

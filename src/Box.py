@@ -20,6 +20,9 @@ class Box:
         so_far = self._available_ingredients[ingredient]
         self._available_ingredients.update({ingredient : so_far + 1})
 
+    def get_quantity_of_ingredient(self, ingredient):
+        return self._available_ingredients[ingredient]
+
     def valid_ingredient(self, ingredient):
         return ingredient in self._available_ingredients.keys()  # if ingredient is one of the possible ingredients in this box return True
 
