@@ -47,17 +47,18 @@ def possible_transitions():
     TERMINAL = "TERMINAL"
 
     possible_transitions = {
-            "s0" : [TERMINAL],## changes here to add terminal states
-            # "s0": [RIGHT],
+            # "s0" : [TERMINAL],## changes here to add terminal states
+            "s0": [RIGHT],
             "s1" : [LEFT, RIGHT, UP],
             "s2" : [LEFT, RIGHT],
             "s3" : [LEFT, RIGHT, UP],
             "s4" : [LEFT, RIGHT],
             "s5" : [LEFT, RIGHT, UP],
-            # "s6" : [LEFT, RIGHT],
-            "s6": [TERMINAL],  # changes here to add terminal states
+            "s6" : [LEFT, RIGHT],
+            # "s6": [TERMINAL],  # changes here to add terminal states
             "s7" : [LEFT, RIGHT, UP],
-            "s8" : [LEFT, RIGHT, UP],
+            "s8" : [TERMINAL],
+            # "s8" : [LEFT, RIGHT, UP],
             "s9" : [RIGHT, UP, DOWN],
             "s10" : [LEFT],
             "s11" : [UP, DOWN],
