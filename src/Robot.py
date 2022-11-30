@@ -27,8 +27,8 @@ class Robot:
         self._substitutions = {}
         self._unavailable = []
         self._replacements = self.update_food_dictionary(replacements)
-        self._facing = "RIGHT"
-        self._location = "s8"
+        self._facing = "DOWN"
+        self._location = "s15"
         self.current_pose = PoseStamped()
         
         self.current_box = None
@@ -55,27 +55,27 @@ class Robot:
     def get_location(self):
         return self._location
 
-    def markers(self):
-        marker = Marker()
-        # marker.pose = self.current_pose.pose
-        marker.header.frame_id = "/map"
-        marker.id = 0
-        marker.pose.position.x = 10
-        marker.pose.position.y = 10
-
-        marker.type = marker.CYLINDER
-        marker.action = 2
-        marker.color.r = 1
-        marker.color.g = 1
-        marker.color.b = 0.0
-        marker.color.a = 1
-        marker.scale.x = 10
-        marker.scale.y = 10
-        marker.scale.z = 100
-        marker.frame_locked = True
-        marker.ns = "Goal"
-
-        self.mark_pub.publish(marker)
+    # def markers(self):
+    #     marker = Marker()
+    #     # marker.pose = self.current_pose.pose
+    #     marker.header.frame_id = "/map"
+    #     marker.id = 0
+    #     marker.pose.position.x = 10
+    #     marker.pose.position.y = 10
+    #
+    #     marker.type = marker.CYLINDER
+    #     marker.action = 2
+    #     marker.color.r = 1
+    #     marker.color.g = 1
+    #     marker.color.b = 0.0
+    #     marker.color.a = 1
+    #     marker.scale.x = 10
+    #     marker.scale.y = 10
+    #     marker.scale.z = 100
+    #     marker.frame_locked = True
+    #     marker.ns = "Goal"
+    #
+    #     self.mark_pub.publish(marker)
 
     def get_box_at_state(self, box_states):
         # returns the box at the current state

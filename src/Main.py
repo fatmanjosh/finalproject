@@ -30,6 +30,45 @@ def main():
     requested_ingredients = goal_ingredients.copy()
     replacements = [["seeded bread", "white bread"], ["oat milk", "almond milk"], ["bacon", "ham"], ["avocado oil", "olive oil"]]
 
+
+    # Uncomment block below when you want to use terminal to type in ingredients and replacements 
+    """""
+    shop._init_markers()
+
+    goal_ingredients = []
+    user_input = input("Enter requested ingredients, separated by commas: ")
+    goal_ingredients = user_input.split(",")
+
+    #algorithm:
+    #for items in requested ingredients, make list containing requested ingredient.
+    #make list of replacement ingredients.
+    # list1 + list 2 = list 3 [requested item, replacement1, replacement2, ...]
+    # replacements = [list(1), list(2), list(3), list(4), ...]
+    # we want a list containing lists. each list is [requested item, replacement 1, replacement 2, ...]
+
+    temp_list1 = []
+    temp2_list2 = []
+    temp_replacements = []
+    replacements = []
+
+    number_of_ingredients = len(goal_ingredients)
+    print(number_of_ingredients)
+    for n in range(number_of_ingredients):
+        temp_list1 = [goal_ingredients[n]]
+        print(temp_list1)
+        user_input = input("Enter replacements for ingredient " + goal_ingredients[n] + " in priority order separated by commas: ") #creates list of replacements
+        temp_list2 = user_input.split(",")
+        print(temp_list2)
+        temp_replacements = temp_list1 + temp_list2
+        replacements.append(temp_replacements)
+        print(replacements)
+
+    requested_ingredients = goal_ingredients.copy()
+    
+    #replacements = [["cashews", "almonds", "peanuts"], ["oat milk", "almond milk"], ["bacon", "ham"], ["avocado oil", "olive oil"]]
+    #^e.g. if no cashews bring almonds, if no almonds bring peanuts, if no peanuts give up and say not available.
+    """""
+
     myRobot = Robot(goal_ingredients, replacements)
 
     myRobot.send_robot_location(map.states()[myRobot.get_location()])
@@ -52,6 +91,7 @@ def main():
     shop.publish_boxes()
     shop.publish_boxes_to_visit()
     shop.policy_iteration()
+    shop.post_start_customer()
     
     i = 1
     collected_all_items = False
@@ -60,7 +100,7 @@ def main():
         myRobot.send_robot_location(map.states()[myRobot.get_location()])  # update robot's pose for rviz
         done = False
         
-        if myRobot.check_if_at_box(shop.boxes_to_visit.keys()):  # if the robot is at one of the required boxes
+        if myRobot.check_if_at_box(shop.boxes_to_visit.keys()):            # if the robot is at one of the required boxes
             
             if (i == 2):
                 done = True
@@ -98,6 +138,7 @@ def main():
             if len(shop.boxes_to_visit) == 0:  # if all boxes have been visited then update policy iteration to return to state 8
                 shop.publish_boxes_to_visit()
                 shop.set_path_to_customer()
+                shop.post_end_customer()
                 collected_all_items = True
 
                 
