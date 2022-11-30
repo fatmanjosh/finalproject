@@ -28,6 +28,8 @@ def main():
 
     shop = Shop(boxes)
 
+    shop._init_markers()
+
     # create a robot and pass in ingredients and replacements provided by customer
     # TODO: update to make use of Customer class rather than being hard-coded
     goal_ingredients = ["salmon", "carrots", "paprika", "oat milk", "bacon", "basmati rice", "eggs", "cashews", "avocado oil"]
@@ -55,6 +57,7 @@ def main():
     shop.publish_boxes()
     shop.publish_boxes_to_visit()
     shop.policy_iteration()
+    shop.post_start_customer()
     
     i = 1
     while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions, shop.transitions, shop.people):  # until a terminal state is reached
@@ -62,7 +65,7 @@ def main():
         myRobot.send_robot_location(map.states()[myRobot.get_location()])  # update robot's pose for rviz
         done = False
         
-        if myRobot.check_if_at_box(shop.boxes_to_visit.keys()):  # if the robot is at one of the required boxes
+        if myRobot.check_if_at_box(shop.boxes_to_visit.keys()):            # if the robot is at one of the required boxes
             
             if (i == 2):
                 done = True
@@ -100,6 +103,7 @@ def main():
             if len(shop.boxes_to_visit) == 0:  # if all boxes have been visited then update policy iteration to return to state 8
                 shop.publish_boxes_to_visit()
                 shop.set_path_to_customer()
+                shop.post_end_customer()
 
                 
         if(i == 2 and done == False):  # TODO: does this always run? is there a better way to implement this?
