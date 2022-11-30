@@ -24,15 +24,48 @@ def main():
     boxes.append(Box("Vegetables", {"carrots": 2, "cucumber": 1, "potato": 9}))
     boxes.append(Box("Fruit", {"banana": 4, "apple": 5, "strawberry": 2}))
     boxes.append(Box("Spices", {"paprika": 2, "cumin": 3}))
-    boxes.append(Box("Alcohol", {"vodka": 2, "rum": 3}))
+    boxes.append(Box("Alcohol", {"vodka": 0, "rum": 3})) # reset vodka to 2
 
     shop = Shop(boxes)
 
     # create a robot and pass in ingredients and replacements provided by customer
     # TODO: update to make use of Customer class rather than being hard-coded
-    goal_ingredients = ["salmon", "carrots", "paprika", "oat milk", "bacon", "basmati rice", "eggs", "cashews", "avocado oil"]
+
+    #goal_ingredients = ["salmon", "carrots", "paprika", "oat milk", "bacon", "basmati rice", "eggs", "cashews", "avocado oil"]
+    goal_ingredients = []
+    user_input = input("Enter requested ingredients, separated by commas: ")
+    goal_ingredients = user_input.split(",")
+
+    #algorithm:
+    #for items in requested ingredients, make list containing requested ingredient.
+    #make list of replacement ingredients.
+    # list1 + list 2 = list 3 [requested item, replacement1, replacement2, ...]
+    # replacements = [list(1), list(2), list(3), list(4), ...]
+    # we want a list containing lists. each list is [requested item, replacement 1, replacement 2, ...]
+
+    temp_list1 = []
+    temp2_list2 = []
+    temp_replacements = []
+    replacements = []
+
+    number_of_ingredients = len(goal_ingredients)
+    print(number_of_ingredients)
+    for n in range(number_of_ingredients):
+        temp_list1 = [goal_ingredients[n]]
+        print(temp_list1)
+        user_input = input("Enter replacements for ingredient " + goal_ingredients[n] + " in priority order separated by commas: ") #creates list of replacements
+        temp_list2 = user_input.split(",")
+        print(temp_list2)
+        temp_replacements = temp_list1 + temp_list2
+        replacements.append(temp_replacements)
+        print(replacements)
+
+
     requested_ingredients = goal_ingredients.copy()
-    replacements = [["cashews", "almonds", "peanuts"], ["oat milk", "almond milk"], ["bacon", "ham"], ["avocado oil", "olive oil"]]
+    #replacements = [["cashews", "almonds", "peanuts"], ["oat milk", "almond milk"], ["bacon", "ham"], ["avocado oil", "olive oil"]]
+    #^e.g. if no cashews bring almonds, if no almonds bring peanuts, if no peanuts give up and say not available.
+
+
     myRobot = Robot(goal_ingredients, replacements)
 
     myRobot.send_robot_location(map.states()[myRobot.get_location()])
