@@ -181,6 +181,15 @@ class Robot:
 
 
 
+
+    def turn(self, pre_coods, post_coords):
+        x = (post_coords[0] - pre_coods[0]) / 5
+        y = (post_coords[1] - pre_coods[1]) / 5
+        return -x, -y
+
+
+
+
     def left_or_right(self, direction):
         # used to turn in the given direction
         set_vel = Twist()
