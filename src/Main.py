@@ -26,7 +26,8 @@ def main():
     boxes.append(Box("Alcohol", {"vodka": 2, "rum": 3}))
     shop = Shop(boxes)
 
-    goal_ingredients = ["bacon", "salmon", "carrots", "paprika", "oat milk", "bacon", "basmati rice", "eggs", "bagels", "bacon", "avocado oil"]
+    # goal_ingredients = ["bacon", "salmon", "carrots", "paprika", "oat milk", "bacon", "basmati rice", "eggs", "bagels", "bacon", "avocado oil"]
+    goal_ingredients = ["milk", "bacon", "basmati rice", "olive oil", "yeast", "bagels", "penne", "sea bass", "carrots", "banana", "paprika", "vodka"]
     requested_ingredients = goal_ingredients.copy()
     replacements = [["seeded bread", "white bread"], ["oat milk", "almond milk"], ["bacon", "ham"], ["avocado oil", "olive oil"]]
 
@@ -94,8 +95,11 @@ def main():
     shop.post_start_customer()
     
     i = 1
+    number_of_steps = 0
     collected_all_items = False
     while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions, shop.transitions, shop.people):  # until a terminal state is reached
+        
+        number_of_steps += 1
         
         myRobot.send_robot_location(map.states()[myRobot.get_location()])  # update robot's pose for rviz
         done = False
@@ -171,6 +175,8 @@ def main():
             print(f"ingredients returned by the robot : {myRobot.get_inventory()}")
             print(f"substitutions : {myRobot.get_substitutions()}")
             print(f"unavailable : {myRobot.get_unavailable()}")
+            
+            print(f"number of steps taken by robot: {number_of_steps}")
 
             # TODO: robot actions when it returns to customer
             # do robot inventory processing here
