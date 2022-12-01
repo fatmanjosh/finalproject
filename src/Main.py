@@ -17,12 +17,12 @@ def main():
     boxes.append(Box("Oil", {"sunflower oil": 2, "olive oil": 3, "vegetable oil": 1, "avocado oil": 0}))
     boxes.append(Box("Baking", {"flour": 4, "eggs": 2, "yeast": 1}))
     # boxes.append(Box("Nuts", {"almonds": 0, "cashews": 0, "peanuts": 4})) # replaced by bread box
-    boxes.append(Box("Bread", {"white bread": 3, "seeded bread": 2, "bagels": 1}))
+    boxes.append(Box("Bread", {"white bread": 3, "seeded bread": 2, "bagels": 0}))
     boxes.append(Box("Pasta", {"spaghetti": 3, "penne": 2, "lasagne": 1}))
     boxes.append(Box("Fish", {"salmon": 0, "sea bass": 2}))  # TODO: change salmon back to 1
     boxes.append(Box("Vegetables", {"carrots": 2, "cucumber": 1, "potato": 9}))
     boxes.append(Box("Fruit", {"banana": 4, "apple": 5, "strawberry": 2}))
-    boxes.append(Box("Spices", {"paprika": 0, "cumin": 3}))
+    boxes.append(Box("Spices", {"paprika": 1, "cumin": 3}))
     boxes.append(Box("Alcohol", {"vodka": 2, "rum": 3}))
     shop = Shop(boxes)
 
@@ -33,11 +33,11 @@ def main():
 
 
     # Uncomment block below when you want to use terminal to type in ingredients and replacements 
-    """""
-    shop._init_markers()
+
+    # shop._init_markers()
 
     goal_ingredients = []
-    user_input = input("Enter requested ingredients, separated by commas: ")
+    user_input = (input("Enter requested ingredients, separated by commas: ")).lower()
     goal_ingredients = user_input.split(",")
 
     #algorithm:
@@ -57,17 +57,20 @@ def main():
     for n in range(number_of_ingredients):
         temp_list1 = [goal_ingredients[n]]
         print(temp_list1)
-        user_input = input("Enter replacements for ingredient " + goal_ingredients[n] + " in priority order separated by commas: ") #creates list of replacements
+        user_input = (input("Enter replacements for ingredient " + goal_ingredients[n] + " in priority order separated by commas: ")).lower() #creates list of replacements
         temp_list2 = user_input.split(",")
         print(temp_list2)
-        temp_replacements = temp_list1 + temp_list2
+        if temp_list2 != ['']:
+            temp_replacements = temp_list1 + temp_list2
+        else:
+            temp_replacements = temp_list1
         replacements.append(temp_replacements)
         print(replacements)
     requested_ingredients = goal_ingredients.copy()
     
     #replacements = [["cashews", "almonds", "peanuts"], ["oat milk", "almond milk"], ["bacon", "ham"], ["avocado oil", "olive oil"]]
     #^e.g. if no cashews bring almonds, if no almonds bring peanuts, if no peanuts give up and say not available.
-    """""
+
 
     myRobot = Robot(goal_ingredients, replacements)
 
@@ -76,25 +79,39 @@ def main():
     print(f"\ngoal ingredients : {myRobot.get_goal_ingredients()}")
         
     # replaces oos items and reports impossible task for oos items without replacements
-    if not myRobot.check_for_oos_ingredients():  # if any required item is known to be oos and does not have a replacement
+    bad_ingredients = myRobot.check_for_oos_ingredients(shop, boxes)
+
+    if bad_ingredients != []:  # if any required item is known to be oos and does not have a replacement
         # TODO: if we know that the task is impossible should we still do it? or should we somehow move onto the next customer
-        myRobot.report_impossible_task()
-        
-    print(f"goal ingredients after replacements : {myRobot.get_goal_ingredients()} \n")  # prints list of required ingredients after oos items have been replaced
+        myRobot.report_out_of_stock(bad_ingredients, shop)
+
+    collected_all_items = False
+
 
     # get list of states of boxes that the robot needs to visit to pick up all items on the list
-    shop.set_boxes_to_visit(myRobot.get_goal_ingredients(), boxes)
-    shop.print_boxes_to_visit()
-        
-    # add people and boxes to rviz
-    shop.publish_people()
-    shop.publish_boxes()
-    shop.publish_boxes_to_visit()
-    shop.policy_iteration()
-    shop.post_start_customer()
+    shop.set_boxes_to_visit(myRobot.get_goal_ingredients(), boxes, myRobot)
+
+    if shop.boxes_to_visit == {}:
+        print("No ingredients required possible to return.")
+        shop.set_path_to_customer()
+        collected_all_items = True
+    else:
+        print(f"goal ingredients after replacements : {myRobot.get_goal_ingredients()} \n")  # prints list of required ingredients after oos items have been replaced
+
+        shop.print_boxes_to_visit()
+
+        # add people and boxes to rviz
+        shop.publish_people()
+        shop.publish_boxes()
+        shop.publish_boxes_to_visit()
+        shop.policy_iteration()
+        shop.post_start_customer()
     
     i = 1
-    collected_all_items = False
+
+    global steps_until_update
+    steps_until_update = 1
+
     while not myRobot.move_using_policy_iteration(map.states(), shop.pi_transitions, shop.transitions, shop.people):  # until a terminal state is reached
         
         myRobot.send_robot_location(map.states()[myRobot.get_location()])  # update robot's pose for rviz
@@ -102,7 +119,7 @@ def main():
         
         if myRobot.check_if_at_box(shop.boxes_to_visit.keys()):            # if the robot is at one of the required boxes
             
-            if (i == 1000000):
+            if (i == steps_until_update):
                 done = True
                 shop.set_people(1)
                 
@@ -123,21 +140,15 @@ def main():
             
             # picks up all goal ingredients contained within this box
 
-            print(f"btv: {shop.boxes_to_visit}")
 
             myRobot.pick_up_all_required_ingredients_from_box(shop)
 
-            print(f"btv2: {shop.boxes_to_visit}")
-            
             # print out robot inventory and contents of box after robot picks up ingredients
             print(f"\nrobot inventory : {myRobot.get_inventory()}")
             print(f"updated box contents: {myRobot.current_box.get_available_ingredients()}")               
 
             # update boxes to visit in case any new ones were added, e.g. if an item was oos and replacement is in another box
-            shop.set_boxes_to_visit(myRobot.get_goal_ingredients(), boxes)
-
-            print(f"btv3: {shop.boxes_to_visit}")
-
+            shop.set_boxes_to_visit(myRobot.get_goal_ingredients(), boxes, myRobot)
             
             shop.update_boxes_to_visit(myRobot.get_location())  # remove box from list of remaining boxes and set its reward back to -1
             shop.print_boxes_to_visit()  # print the list of remaining boxes to visit
@@ -152,11 +163,11 @@ def main():
             shop.policy_iteration()
 
                 
-        if(i == 100000 and done == False):  # TODO: does this always run? is there a better way to implement this?
+        if(i == steps_until_update and done == False):  # TODO: does this always run? is there a better way to implement this?
             # print("change\n\n\n\n")
-            shop.set_people(100000)
+            shop.set_people(1)
+            shop.transitions = transitions.transitions(shop.people)
             i = 0
-
             shop.policy_iteration()
             shop.publish_people()
 
