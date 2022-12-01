@@ -15,10 +15,14 @@ class Box:
     def check_for_ingredient(self, ingredient):
         return (ingredient in self._available_ingredients.keys()  # if ingredient exists in box (0+ items)
                 and self._available_ingredients[ingredient] > 0)  # and is in stock (1+ items) return True
-    
+
+    def put_back_ingredient(self, ingredient):
+        so_far = self._available_ingredients[ingredient]
+        self._available_ingredients.update({ingredient : so_far + 1})
+
     def get_quantity_of_ingredient(self, ingredient):
         return self._available_ingredients[ingredient]
-    
+
     def valid_ingredient(self, ingredient):
         return ingredient in self._available_ingredients.keys()  # if ingredient is one of the possible ingredients in this box return True
 

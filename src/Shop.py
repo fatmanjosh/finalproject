@@ -6,7 +6,7 @@ import map, transitions
 from sensor_msgs.msg import PointCloud
 from geometry_msgs.msg import PoseArray, Pose, Point, PointStamped
 from visualization_msgs.msg import Marker, MarkerArray
-
+import sys
 
 
 class Shop:
@@ -36,7 +36,7 @@ class Shop:
         self.states = self.generate_states()
         """
 
-
+        self.boxes = boxes
         self.box_states = self.generate_box_states(boxes)
         self.boxes_to_visit = {}
         
@@ -289,21 +289,33 @@ class Shop:
         for state, box in self.box_states.items():
             print(f"{state} : {box}")
 
-    def set_boxes_to_visit(self, goal_ingredients, boxes):
+    def set_boxes_to_visit(self, goal_ingredients, boxes, robot):
+        self.boxes_to_visit = {}
         # finds the list of boxes that the robot should visit to collect all ingredients
-        for box in boxes:
-            for ingredient in goal_ingredients:
-                if ingredient in box.get_available_ingredients().keys():
+        for ingredient in goal_ingredients:
+            for box in boxes:
+                if ingredient in box.get_available_ingredients():
                     # get the state number of the box containing this item
                     state_no = list(self.get_box_states().keys())[list(self.get_box_states().values()).index(box)]
                     self.boxes_to_visit[state_no] = box.get_name()  # add state and box name to dictionary
                     break
 
+
+
+
+        #
+        # if goal_ingredients == []:
+        #     self.boxes_to_visit = {}
+
         self.add_new_box_rewards(self.boxes_to_visit.keys())  # set box rewards to +100
+
+
 
     def update_boxes_to_visit(self, state):
         # removes the box in given state and sets its reward to -1 before publishing the remaining boxes
-        self.boxes_to_visit.pop(state)
+        print(f"boxes to visit: {self.boxes_to_visit}")
+        if state in self.boxes_to_visit:
+            self.boxes_to_visit.pop(state)
         self.clear_box_rewards(state)
         self.publish_boxes_to_visit()      
         
@@ -328,7 +340,7 @@ class Shop:
                     #     rewards[state] = -1
                     rewards[state] = -1
                     i += 1
-        rewards.update({"s0": -100})  # program ends when robot moves into s8 so set this to -100 whilst collecting items
+        # rewards.update({"s0": -100})  # program ends when robot moves into s8 so set this to -100 whilst collecting items
         # print(rewards)
         # adding specific rewards for specific states
         # rewards.update({"s0": 100})
@@ -347,6 +359,172 @@ class Shop:
         # used to add a reward of +100 to every box in the given list
         for state in list_of_states:
             self.rewards.update({state : 100})
+
+    def pick_or_return(self, robot):
+        i = 0
+        while not robot.move_using_policy_iteration(map.states(), self.pi_transitions, self.transitions, self.people):
+
+            robot.send_robot_location(map.states()[robot.get_location()])  # update robot's pose for rviz
+            done = False
+            if robot.check_if_at_box(self.boxes_to_visit.keys()):  # if the robot is at one of the required boxes
+
+                if (i == 1):
+                    done = True
+                    self.set_people(1)
+                    i = 0
+                    self.transitions = transitions.transitions(self.people)
+                    self.publish_people()
+                # get the box at our current state
+                for box in self.boxes:
+                    if str(box.get_name()) == str(self.box_states[robot.get_location()]):
+                        robot.current_box = box
+                        break
+                print("---------------------------------------------------------------------------")
+                print(f"contents of current box : {robot.current_box.get_available_ingredients()}")
+                print(f"goal ingredients: {robot.get_goal_ingredients()}")
+                # picks up all goal ingredients contained within this box
+
+                robot.put_back_all_required_ingredients_with_return(self)
+                robot.pick_up_all_required_ingredients_from_box(self)
+
+                # print out robot inventory and contents of box after robot picks up ingredients
+                print(f"\nrobot inventory : {robot.get_inventory()}")
+                print(f"updated box contents: {robot.current_box.get_available_ingredients()}")
+                print(f"updated goal ingredients: {robot.get_goal_ingredients()}")
+
+                # update boxes to visit in case any new ones were added, e.g. if an item was oos and replacement is in another box
+                # self.set_boxes_to_visit(robot.get_inventory(), self.boxes)
+
+                print(f"boxes to visit : {self.boxes_to_visit}")
+
+                self.update_boxes_to_visit(
+                    robot.get_location())  # remove box from list of remaining boxes and set its reward back to -1
+                self.print_boxes_to_visit()  # print the list of remaining boxes to visit
+                print(f"updated boxes to visit : {self.boxes_to_visit}")
+
+                if len(self.boxes_to_visit) == 0:  # if all boxes have been visited then update policy iteration to return to state 8
+                    self.publish_boxes_to_visit()
+                    self.set_path_to_customer()
+                    self.post_end_customer()
+                self.policy_iteration()
+
+            if (i == 1 and done == False):  # TODO: does this always run? is there a better way to implement this?
+                # print("change\n\n\n\n")
+                self.set_people(1)
+                i = 0
+                self.transitions = transitions.transitions(self.people)
+                self.policy_iteration()
+                self.publish_people()
+
+            robot.send_robot_location(map.states()[robot.get_location()])  # send robot location to rviz publisher
+
+            i += 1
+
+            if robot.get_location() == "s8":  # if robot is back in state 8 with the customer, end loop
+                print("robot now back at customer \n")
+                sys.exit("Complete")
+
+                # sort lists alphabetically for readability and then print them
+                # requested_ingredients.sort()
+                # robot.get_inventory().sort()
+                #
+                # print(f"ingredients requested by customer : {requested_ingredients}")
+                # print(f"ingredients returned by the robot : {robot.get_inventory()}")
+                # # print(f"unavailable items : {unavailable_items} \n")
+                # print(f"substitutions : {robot.get_substitutions()}")
+                # print(f"unavailable : {robot.get_unavailable()}")
+
+                # TODO: robot actions when it returns to customer
+                # do robot inventory processing here
+                # e.g. check whether it matches the customer's ingredient list
+                # clear inventory?
+                # get new customer?
+
+                break
+
+        print("\nsuccess!!!!")
+
+
+
+    def put_all_back(self, robot):
+        i = 0
+        while not robot.move_using_policy_iteration(map.states(), self.pi_transitions, self.transitions, self.people):
+
+            robot.send_robot_location(map.states()[robot.get_location()])  # update robot's pose for rviz
+            done = False
+            if robot.check_if_at_box(self.boxes_to_visit.keys()):  # if the robot is at one of the required boxes
+
+                if (i == 100000):
+                    done = True
+                    self.set_people(1)
+                    i = 0
+                    self.transitions = transitions.transitions(self.people)
+                    self.publish_people()
+                # get the box at our current state
+                for box in self.boxes:
+                    if str(box.get_name()) == str(self.box_states[robot.get_location()]):
+                        robot.current_box = box
+                        break
+                print("---------------------------------------------------------------------------")
+                print(f"contents of current box : {robot.current_box.get_available_ingredients()}")
+                print(f"goal ingredients: {robot.get_goal_ingredients()}")
+                # picks up all goal ingredients contained within this box
+                robot.put_back_all_required_ingredients(self)
+
+                # print out robot inventory and contents of box after robot picks up ingredients
+                print(f"\nrobot inventory : {robot.get_inventory()}")
+                print(f"updated box contents: {robot.current_box.get_available_ingredients()}")
+                print(f"updated goal ingredients: {robot.get_goal_ingredients()}")
+
+                # update boxes to visit in case any new ones were added, e.g. if an item was oos and replacement is in another box
+                # self.set_boxes_to_visit(robot.get_inventory(), self.boxes)
+
+                print(f"boxes to visit : {self.boxes_to_visit}")
+
+                self.update_boxes_to_visit(robot.get_location())  # remove box from list of remaining boxes and set its reward back to -1
+                self.print_boxes_to_visit()  # print the list of remaining boxes to visit
+                print(f"updated boxes to visit : {self.boxes_to_visit}")
+
+                if len(self.boxes_to_visit) == 0:  # if all boxes have been visited then update policy iteration to return to state 8
+                    self.publish_boxes_to_visit()
+                    self.set_path_to_customer()
+                    self.post_end_customer()
+                self.policy_iteration()
+
+            if (i == 1000000 and done == False):  # TODO: does this always run? is there a better way to implement this?
+                # print("change\n\n\n\n")
+                self.set_people(1)
+                i = 0
+                self.policy_iteration()
+                self.publish_people()
+
+            robot.send_robot_location(map.states()[robot.get_location()])  # send robot location to rviz publisher
+
+            i += 1
+
+            if robot.get_location() == "s8":  # if robot is back in state 8 with the customer, end loop
+                print("robot now back at customer \n")
+                sys.exit("Complete")
+
+                # sort lists alphabetically for readability and then print them
+                # requested_ingredients.sort()
+                # robot.get_inventory().sort()
+                #
+                # print(f"ingredients requested by customer : {requested_ingredients}")
+                # print(f"ingredients returned by the robot : {robot.get_inventory()}")
+                # # print(f"unavailable items : {unavailable_items} \n")
+                # print(f"substitutions : {robot.get_substitutions()}")
+                # print(f"unavailable : {robot.get_unavailable()}")
+
+                # TODO: robot actions when it returns to customer
+                # do robot inventory processing here
+                # e.g. check whether it matches the customer's ingredient list
+                # clear inventory?
+                # get new customer?
+
+                break
+
+        print("\nsuccess!!!!")
 
     def clear_box_rewards(self, state):
         # used to set reward of a box state to -1 once it has been visited
